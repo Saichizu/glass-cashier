@@ -8,7 +8,7 @@ from reportlab.pdfgen import canvas
 
 # --- CONFIGURATION ---
 GITHUB_REPO = "Saichizu/glass-cashier"
-SHOP_NAME = "Glass Cashier App"  # shown at top of receipt
+SHOP_NAME = "GLASS CASHIER"  # shown at top of receipt
 
 # --- ITEMS ---
 ITEMS = [

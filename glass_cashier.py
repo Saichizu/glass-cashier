@@ -160,12 +160,21 @@ if transactions_today:
     for t in transactions_today:
         with st.expander(f"{t['code']} - Rp {t['total']:,} [{t['method']}]"):
             for item in t["items"]:
-                st.write(
-                    f"- {item['item']} | {item['width_cm']}x{item['height_cm']} cm | "
-                    f"{item['qty']} pcs | Rp {item['unit_price']:,} | Subtotal Rp {item['price']:,}"
-                )
+                # backward compatible display
+                if "qty" in item:  
+                    st.write(
+                        f"- {item['item']} | {item['width_cm']}x{item['height_cm']} cm | "
+                        f"{item['area_m2']:.2f} m² | {item['qty']} pcs | "
+                        f"Rp {item['unit_price']:,} | Subtotal Rp {item['price']:,}"
+                    )
+                else:  # old format
+                    st.write(
+                        f"- {item['item']} | {item['width_cm']}x{item['height_cm']} cm | "
+                        f"{item['area_m2']:.2f} m² | Rp {item['price']:,}"
+                    )
 else:
     st.info("Belum ada transaksi hari ini.")
+
 
 # --- Finish session ---
 if st.button("Selesaikan Sesi"):

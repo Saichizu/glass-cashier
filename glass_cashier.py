@@ -256,7 +256,7 @@ if transactions_today:
             for item in t["items"]:
                 st.write(
                     f"- {item['item']} | {item['width_cm']}x{item['height_cm']} cm | "
-                    f"{item['area_m2']:.2f} m² | {item['qty']} pcs | "
+                    f"{item.get('area_m2', 0):.2f} m² | {item.get('qty', 0)} pcs | "
                     f"Rp {item['unit_price']:,} | Subtotal Rp {item['price']:,}"
                 )
 else:

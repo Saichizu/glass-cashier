@@ -250,5 +250,32 @@
     "method": "Cash",
     "total_qty": 4,
     "total": 531000
+  },
+  {
+    "code": "GL220825-012",
+    "datetime": "2025-08-22T08:21:08.221580",
+    "items": [
+      {
+        "item": "Kaca Reben 5MM",
+        "width_cm": 138.0,
+        "height_cm": 39.5,
+        "area_m2": 0.5451,
+        "unit_price": 109520,
+        "qty": 1,
+        "price": 110000
+      },
+      {
+        "item": "Kaca Reben 5MM",
+        "width_cm": 138.0,
+        "height_cm": 38.0,
+        "area_m2": 0.5244,
+        "unit_price": 105380,
+        "qty": 1,
+        "price": 106000
+      }
+    ],
+    "method": "Cash",
+    "total_qty": 2,
+    "total": 216000
   }
 ]

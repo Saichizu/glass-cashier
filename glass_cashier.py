@@ -228,21 +228,29 @@ item_obj = next(item for item in ITEMS if item["name"] == selected_item)
 base_price = item_obj["base_price"]
 
 col1, col2 = st.columns(2)
-# PATCH: allow decimals, use step and format for two decimals
-width_cm = col1.number_input("Lebar (cm)", min_value=0.0, value=0.0, step=0.1, format="%.2f")
-height_cm = col2.number_input("Tinggi (cm)", min_value=0.0, value=0.0, step=0.1, format="%.2f")
+width_cm = col1.number_input("Lebar (cm)", min_value=0.0, value=st.session_state.get("width_cm", 0.0), step=0.1, format="%.2f", key="width_cm")
+height_cm = col2.number_input("Tinggi (cm)", min_value=0.0, value=st.session_state.get("height_cm", 0.0), step=0.1, format="%.2f", key="height_cm")
+qty = st.number_input("Jumlah", min_value=1, value=st.session_state.get("qty", 1), key="qty")
+
+add_col, clear_col = st.columns([2, 1])
+with add_col:
+    add_clicked = st.button("➕ Tambah ke Keranjang")
+with clear_col:
+    clear_input_clicked = st.button("🧹 Clear Tambah ke Keranjang")
+
+if clear_input_clicked:
+    st.session_state["width_cm"] = 0.0
+    st.session_state["height_cm"] = 0.0
+    st.session_state["qty"] = 1
 
 if width_cm > 0 and height_cm > 0:
     area_m2 = (width_cm / 100) * (height_cm / 100)
     unit_price = int(area_m2 * base_price + SERVICE_FEE)
     st.success(f"Harga per item: {rupiah(unit_price)}")
 
-    qty = st.number_input("Jumlah", min_value=1, value=1)
-
-    if st.button("➕ Tambah ke Keranjang"):
+    if add_clicked:
         found = False
         for item in st.session_state["keranjang"]:
-            # PATCH: use float for comparison to avoid rounding errors
             if (
                 item.get("item") == selected_item
                 and float(item.get("width_cm", 0)) == float(width_cm)

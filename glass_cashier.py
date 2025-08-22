@@ -56,11 +56,14 @@ def js_print():
     st.markdown(
         """
         <script>
-        window.print();
+        setTimeout(function() {
+            window.print();
+        }, 800);  // wait 0.8s so receipt renders first
         </script>
         """,
         unsafe_allow_html=True,
     )
+
 
 # --- SESSION STATE ---
 if "keranjang" not in st.session_state:

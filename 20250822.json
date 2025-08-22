@@ -1,0 +1,17 @@
+[
+  {
+    "code": "GL220825-001",
+    "datetime": "2025-08-22T04:05:35.784704",
+    "items": [
+      {
+        "item": "Kaca Reben 5MM",
+        "width_cm": 55,
+        "height_cm": 60,
+        "area_m2": 0.33,
+        "price": 66500
+      }
+    ],
+    "method": "Cash",
+    "total": 66500
+  }
+]

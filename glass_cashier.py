@@ -237,7 +237,7 @@ def safe_reset():
 
 safe_reset()
 
-st.title("Glass Cashier App")
+st.title("Sistem Penjualan Kaca")
 if st.button("Refresh"):
     st.rerun()
 

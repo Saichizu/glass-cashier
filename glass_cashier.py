@@ -262,7 +262,7 @@ add_col, clear_col = st.columns([2, 1])
 with add_col:
     add_clicked = st.button("➕ Tambah ke Keranjang")
 with clear_col:
-    st.button("🧹 Clear Tambah ke Keranjang", on_click=clear_inputs)
+    st.button("🧹 Bersihkan", on_click=clear_inputs)
 
 if width_cm > 0 and height_cm > 0:
     area_m2 = (width_cm / 100) * (height_cm / 100)

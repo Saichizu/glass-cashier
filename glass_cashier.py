@@ -8,7 +8,7 @@ from reportlab.pdfgen import canvas
 
 # --- CONFIGURATION ---
 GITHUB_REPO = "Saichizu/glass-cashier"
-SHOP_NAME = "GLASS CASHIER"  # shown at top of receipt
+SHOP_NAME = "Glass Cashier App"  # shown at top of receipt
 
 # --- ITEMS ---
 ITEMS = [
@@ -216,9 +216,11 @@ if "edit_date" not in st.session_state:
     st.session_state["edit_date"] = None
 if "last_receipt" not in st.session_state:
     st.session_state["last_receipt"] = None
+if "reprint_passcode" not in st.session_state:
+    st.session_state["reprint_passcode"] = ""
 
 # --- UI ---
-st.title("GLASS CASHIER")
+st.title("Glass Cashier App")
 
 # Item selection
 st.subheader("Tambah ke Keranjang")
@@ -283,13 +285,13 @@ if st.session_state["keranjang"]:
     # Add header row for cart columns
     col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
     with col1:
-        st.markdown("**Item**")
+        st.markdown("**Nama Barang**")
     with col2:
         st.markdown("**Ukuran (cm)**")
     with col3:
-        st.markdown("**QTY**")
+        st.markdown("**Jumlah**")
     with col4:
-        st.markdown("**Harga**")
+        st.markdown("**Harga Satuan**")
     with col5:
         st.markdown("**Subtotal**")
     with col6:
@@ -375,17 +377,57 @@ filename = get_today_filename()
 transactions_today = load_transactions(filename)
 
 if transactions_today:
-    for t in transactions_today:
-        qty_display = t.get("total_qty", sum(safe_item_fields(i)[3] for i in t.get("items", [])))
-        total_display = t.get("total", sum(safe_item_fields(i)[5] for i in t.get("items", [])))
+    for i, t in enumerate(transactions_today):
+        qty_display = t.get("total_qty", sum(safe_item_fields(it)[3] for it in t.get("items", [])))
+        total_display = t.get("total", sum(safe_item_fields(it)[5] for it in t.get("items", [])))
         method_display = t.get("method", "-")
         with st.expander(f"{t.get('code','(tanpa kode)')} - {rupiah(total_display)} [{qty_display} pcs, {method_display}]"):
+            # Add header row for transaction detail
+            col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
+            with col1:
+                st.markdown("**Nama Barang**")
+            with col2:
+                st.markdown("**Ukuran (cm)**")
+            with col3:
+                st.markdown("**Jumlah**")
+            with col4:
+                st.markdown("**Harga Satuan**")
+            with col5:
+                st.markdown("**Subtotal**")
+            with col6:
+                st.markdown("")  # No delete button for history
+
             for item in t.get("items", []):
                 name, w, h, qty, unit_p, subtotal, area_m2 = safe_item_fields(item)
-                st.write(
-                    f"- {name} | {w:.2f}x{h:.2f} cm | {area_m2:.2f} m² | {qty} pcs | "
-                    f"{rupiah(unit_p)} | Subtotal {rupiah(subtotal)}"
-                )
+                col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
+                with col1:
+                    st.write(name)
+                with col2:
+                    st.write(f"{w:.2f} x {h:.2f} cm")
+                with col3:
+                    st.write(f"{qty}")
+                with col4:
+                    st.write(f"{rupiah(unit_p)}")
+                with col5:
+                    st.write(f"{rupiah(subtotal)}")
+                with col6:
+                    st.write("")  # No delete button for history
+
+            # Allow reprint for this transaction
+            passcode = st.text_input(f"Masukkan Kode Owner untuk Reprint [{t.get('code','no_code')}]", type="password", key=f"reprint_passcode_{i}")
+            if passcode:
+                if passcode == OWNER_PASSCODE:
+                    if st.button(f"Reprint Struk [{t.get('code','no_code')}]", key=f"reprint_btn_{i}"):
+                        pdf = create_receipt_pdf(t)
+                        st.download_button(
+                            label=f"⬇️ Download Reprint PDF [{t.get('code','no_code')}]",
+                            data=pdf,
+                            file_name=f"reprint_{t.get('code','no_code')}.pdf",
+                            mime="application/pdf"
+                        )
+                else:
+                    st.error("Kode salah. Tidak bisa reprint.")
+
 else:
     st.info("Belum ada transaksi hari ini.")
 
@@ -400,7 +442,7 @@ if st.button("Selesaikan Sesi"):
     for method, txns in by_method.items():
         st.write(f"**Transaksi {method}**")
         for t in txns:
-            qty_display = t.get("total_qty", sum(safe_item_fields(i)[3] for i in t.get("items", [])))
+            qty_display = t.get("total_qty", sum(safe_item_fields(it)[3] for it in t.get("items", [])))
             st.write(f"{t.get('code','(tanpa kode)')}: {rupiah(t.get('total', 0))} ({qty_display} pcs)")
         total_m = sum(t.get('total', 0) for t in txns)
         st.write(f"Total {method}: {rupiah(total_m)}")

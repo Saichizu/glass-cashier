@@ -225,57 +225,6 @@ if "reprint_passcode" not in st.session_state:
 
 st.title("Glass Cashier App")
 
-# --- RIWAYAT SESI HARIAN ---
-st.subheader("📅 Riwayat Sesi Harian")
-session_files = list_session_files()
-if session_files:
-    sesi_label = [f"Sesi {f[:4]}-{f[4:6]}-{f[6:8]}" for f in session_files]
-    selected_idx = st.selectbox("Pilih Sesi", range(len(session_files)), format_func=lambda x: sesi_label[x])
-    selected_file = session_files[selected_idx]
-
-    st.info(f"Menampilkan transaksi dari sesi: **{sesi_label[selected_idx]}**")
-    transactions = load_transactions(selected_file)
-    if transactions:
-        for i, t in enumerate(transactions):
-            qty_display = t.get("total_qty", sum(safe_item_fields(it)[3] for it in t.get("items", [])))
-            total_display = t.get("total", sum(safe_item_fields(it)[5] for it in t.get("items", [])))
-            method_display = t.get("method", "-")
-            with st.expander(f"{t.get('code','(tanpa kode)')} - {rupiah(total_display)} [{qty_display} pcs, {method_display}]"):
-                col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
-                with col1: st.markdown("**Item**")
-                with col2: st.markdown("**Ukuran**")
-                with col3: st.markdown("**Qty**")
-                with col4: st.markdown("**Harga Satuan**")
-                with col5: st.markdown("**Subtotal**")
-                with col6: st.markdown("")
-                for item in t.get("items", []):
-                    name, w, h, qty, unit_p, subtotal, area_m2 = safe_item_fields(item)
-                    col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
-                    with col1: st.write(name)
-                    with col2: st.write(f"{w:.2f} x {h:.2f} cm")
-                    with col3: st.write(f"{qty}")
-                    with col4: st.write(f"{rupiah(unit_p)}")
-                    with col5: st.write(f"{rupiah(subtotal)}")
-                    with col6: st.write("")
-                # Reprint for session transactions
-                passcode = st.text_input(f"Masukkan Kode Owner untuk Reprint [{t.get('code','no_code')}] (Riwayat)", type="password", key=f"riwayat_reprint_passcode_{i}")
-                if passcode:
-                    if passcode == OWNER_PASSCODE:
-                        if st.button(f"Reprint Struk [{t.get('code','no_code')}] (Riwayat)", key=f"riwayat_reprint_btn_{i}"):
-                            pdf = create_receipt_pdf(t)
-                            st.download_button(
-                                label=f"⬇️ Download Reprint PDF [{t.get('code','no_code')}]",
-                                data=pdf,
-                                file_name=f"reprint_{t.get('code','no_code')}.pdf",
-                                mime="application/pdf"
-                            )
-                    else:
-                        st.error("Kode salah. Tidak bisa reprint.")
-    else:
-        st.info("Tidak ada transaksi pada sesi ini.")
-else:
-    st.info("Belum ada sesi harian yang tercatat.")
-
 # --- Item selection
 st.subheader("Tambah ke Keranjang")
 item_names = [item["name"] for item in ITEMS]
@@ -288,12 +237,13 @@ width_cm = col1.number_input("Lebar (cm)", min_value=0.0, value=st.session_state
 height_cm = col2.number_input("Tinggi (cm)", min_value=0.0, value=st.session_state.get("height_cm", 0.0), step=0.1, format="%.2f", key="height_cm")
 qty = col3.number_input("Jumlah", min_value=1, value=st.session_state.get("qty", 1), key="qty")
 
-add_col, clear_col = st.columns([2, 1])
 def clear_inputs():
+    # Only set widget keys via callback
     st.session_state["width_cm"] = 0.0
     st.session_state["height_cm"] = 0.0
     st.session_state["qty"] = 1
 
+add_col, clear_col = st.columns([2, 1])
 with add_col:
     add_clicked = st.button("➕ Tambah ke Keranjang")
 with clear_col:
@@ -368,6 +318,12 @@ if st.session_state["keranjang"]:
     pay_enabled = method is not None
 
     # BAYAR BUTTON
+    def after_payment_reset():
+        st.session_state["keranjang"] = []
+        st.session_state["width_cm"] = 0.0
+        st.session_state["height_cm"] = 0.0
+        st.session_state["qty"] = 1
+
     if st.button("💳 Bayar", disabled=not pay_enabled):
         today_str = datetime.datetime.now().strftime("%d%m%y")
         filename = get_today_filename()
@@ -397,10 +353,7 @@ if st.session_state["keranjang"]:
             file_name=f"{receipt_code}.pdf",
             mime="application/pdf"
         )
-        st.session_state["keranjang"] = []
-        st.session_state["width_cm"] = 0.0
-        st.session_state["height_cm"] = 0.0
-        st.session_state["qty"] = 1
+        after_payment_reset()
 
 # --- Daftar Transaksi Hari Ini ---
 st.subheader("📑 Daftar Transaksi Hari Ini")
@@ -486,3 +439,54 @@ else:
 
 if st.button("Refresh"):
     st.rerun()
+
+# --- RIWAYAT SESI HARIAN (Moved to very bottom) ---
+st.subheader("📅 Riwayat Sesi Harian")
+session_files = list_session_files()
+if session_files:
+    sesi_label = [f"Sesi {f[:4]}-{f[4:6]}-{f[6:8]}" for f in session_files]
+    selected_idx = st.selectbox("Pilih Sesi", range(len(session_files)), format_func=lambda x: sesi_label[x])
+    selected_file = session_files[selected_idx]
+
+    st.info(f"Menampilkan transaksi dari sesi: **{sesi_label[selected_idx]}**")
+    transactions = load_transactions(selected_file)
+    if transactions:
+        for i, t in enumerate(transactions):
+            qty_display = t.get("total_qty", sum(safe_item_fields(it)[3] for it in t.get("items", [])))
+            total_display = t.get("total", sum(safe_item_fields(it)[5] for it in t.get("items", [])))
+            method_display = t.get("method", "-")
+            with st.expander(f"{t.get('code','(tanpa kode)')} - {rupiah(total_display)} [{qty_display} pcs, {method_display}]"):
+                col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
+                with col1: st.markdown("**Item**")
+                with col2: st.markdown("**Ukuran**")
+                with col3: st.markdown("**Qty**")
+                with col4: st.markdown("**Harga Satuan**")
+                with col5: st.markdown("**Subtotal**")
+                with col6: st.markdown("")
+                for item in t.get("items", []):
+                    name, w, h, qty, unit_p, subtotal, area_m2 = safe_item_fields(item)
+                    col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
+                    with col1: st.write(name)
+                    with col2: st.write(f"{w:.2f} x {h:.2f} cm")
+                    with col3: st.write(f"{qty}")
+                    with col4: st.write(f"{rupiah(unit_p)}")
+                    with col5: st.write(f"{rupiah(subtotal)}")
+                    with col6: st.write("")
+                # Reprint for session transactions
+                passcode = st.text_input(f"Masukkan Kode Owner untuk Reprint [{t.get('code','no_code')}] (Riwayat)", type="password", key=f"riwayat_reprint_passcode_{i}")
+                if passcode:
+                    if passcode == OWNER_PASSCODE:
+                        if st.button(f"Reprint Struk [{t.get('code','no_code')}] (Riwayat)", key=f"riwayat_reprint_btn_{i}"):
+                            pdf = create_receipt_pdf(t)
+                            st.download_button(
+                                label=f"⬇️ Download Reprint PDF [{t.get('code','no_code')}]",
+                                data=pdf,
+                                file_name=f"reprint_{t.get('code','no_code')}.pdf",
+                                mime="application/pdf"
+                            )
+                    else:
+                        st.error("Kode salah. Tidak bisa reprint.")
+    else:
+        st.info("Tidak ada transaksi pada sesi ini.")
+else:
+    st.info("Belum ada sesi harian yang tercatat.")

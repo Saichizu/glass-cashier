@@ -96,10 +96,10 @@ if st.button("➕ Tambah Item"):
         st.error("Masukkan ukuran yang valid untuk menambahkan item.")
 
 # --------------------
-# Transaction list + Payment
+# Keranjang (Ongoing transaction)
 # --------------------
 if st.session_state["transactions"]:
-    st.subheader("Daftar Transaksi Hari Ini")
+    st.subheader("🛒 Keranjang (Ongoing Transaction)")
     st.table([
         {
             "Barang": t["item"],
@@ -136,11 +136,24 @@ if st.session_state["transactions"]:
         st.session_state["transactions"] = []
 
 # --------------------
+# Daftar transaksi hari ini
+# --------------------
+st.subheader("📑 Daftar Transaksi Hari Ini")
+today_file = get_today_filename()
+transactions_today = load_transactions(today_file)
+
+if transactions_today:
+    for t in transactions_today:
+        with st.expander(f"{t['code']} - Rp {t['total']:,} [{t['method']}]"):
+            for item in t["items"]:
+                st.write(f"- {item['item']} | {item['width_cm']}x{item['height_cm']} cm | Rp {item['price']:,}")
+else:
+    st.info("Belum ada transaksi hari ini.")
+
+# --------------------
 # Finish session
 # --------------------
 if st.button("Selesaikan Sesi"):
-    filename = get_today_filename()
-    transactions_today = load_transactions(filename)
     by_method = {"Cash": [], "Transfer": []}
     for t in transactions_today:
         by_method[t["method"]].append(t)
@@ -151,7 +164,7 @@ if st.button("Selesaikan Sesi"):
             st.write(f"{t['code']}: Rp {t['total']:,}")
         st.write(f"Total {method}: Rp {sum(t['total'] for t in txns):,}")
 
-    # Print-friendly summary for 76mm receipt
+    # Print-friendly summary
     summary_lines = []
     summary_lines.append("---- RINGKASAN SESI ----")
     for method, txns in by_method.items():
@@ -173,7 +186,9 @@ if st.button("Lihat Sesi Tanggal Ini"):
     st.session_state["edit_date"] = filename
     st.subheader(f"Transaksi pada {date_str.strftime('%d-%m-%Y')}")
     for t in txns:
-        st.write(f"{t['code']} - Rp {t['total']:,} [{t['method']}]")
+        with st.expander(f"{t['code']} - Rp {t['total']:,} [{t['method']}]"):
+            for item in t["items"]:
+                st.write(f"- {item['item']} | {item['width_cm']}x{item['height_cm']} cm | Rp {item['price']:,}")
     # Print session
     if st.button("Print Sesi Tanggal Ini"):
         summary_lines = []

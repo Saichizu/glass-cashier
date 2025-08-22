@@ -426,27 +426,6 @@ if st.button("Selesaikan Sesi"):
     pdf = create_summary_pdf("Ringkasan Sesi", summary_lines)
     st.download_button("⬇️ Download Ringkasan PDF", pdf, file_name="summary.pdf", mime="application/pdf")
 
-# --- Reprint function (Owner Only) ---
-st.subheader("🔁 Reprint Struk")
-if st.session_state.get("last_receipt") and st.session_state.get("last_receipt_pdf"):
-    passcode = st.text_input("Masukkan Kode Owner untuk Reprint", type="password")
-    if passcode:
-        if passcode == OWNER_PASSCODE:
-            if st.button("Reprint"):
-                pdf = st.session_state["last_receipt_pdf"]
-                st.download_button(
-                    label="⬇️ Download Reprint PDF",
-                    data=pdf,
-                    file_name=f"reprint_{st.session_state['last_receipt'].get('code','no_code')}.pdf",
-                    mime="application/pdf"
-                )
-        else:
-            st.error("Kode salah. Tidak bisa reprint.")
-else:
-    st.info("Belum ada struk terakhir untuk di-reprint.")
-
-
-
 # --- RIWAYAT SESI HARIAN (Moved to very bottom) ---
 st.subheader("📅 Riwayat Sesi Harian")
 session_files = list_session_files()

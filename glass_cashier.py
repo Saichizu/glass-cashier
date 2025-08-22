@@ -4,14 +4,12 @@ import json
 import math
 from github import Github
 from io import BytesIO
-from reportlab.lib.pagesizes import mm
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib import colors
+from reportlab.pdfgen import canvas
 
 # --- CONFIGURATION ---
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 GITHUB_REPO = "Saichizu/glass-cashier"
+SHOP_NAME = "Glass Cashier App"  # shown at top of receipt
 
 # --- ITEMS ---
 ITEMS = [
@@ -26,6 +24,29 @@ ITEMS = [
 
 SERVICE_FEE = 500
 OWNER_PASSCODE = "901012"
+
+# --- HELPERS ---
+def rupiah(n):
+    try:
+        return f"Rp {int(n):,}".replace(",", ".")
+    except Exception:
+        return f"Rp {n}"
+
+def mm_to_pt(mm):
+    # 1 inch = 25.4 mm, 1 inch = 72 pt
+    return mm * 72.0 / 25.4
+
+def safe_item_fields(item):
+    """Return tuple (name, w_cm, h_cm, qty, unit_price, subtotal, area_m2)
+    using safe defaults to support older transaction shapes."""
+    name = item.get("item") or item.get("name") or "Item"
+    w = item.get("width_cm", 0)
+    h = item.get("height_cm", 0)
+    qty = int(item.get("qty", 1))
+    unit_price = int(item.get("unit_price", 0))
+    subtotal = int(item.get("price", unit_price * qty))
+    area_m2 = float(item.get("area_m2", (w/100.0)*(h/100.0) if (w and h) else 0))
+    return name, w, h, qty, unit_price, subtotal, area_m2
 
 # --- GITHUB UTILS ---
 def get_github_client():
@@ -58,61 +79,139 @@ def generate_receipt_code(date_str, count):
 
 # --- PDF UTILS ---
 def create_receipt_pdf(transaction):
+    """
+    76mm width, dynamic height.
+    Layout:
+      Title
+      Kode: GL...
+      Tanggal: ...
+      ---------------------------------
+      <Nama item>  W x H cm
+      Qty x Harga Satuan = Subtotal
+      (repeat)
+      ---------------------------------
+      Total Qty: N
+      Total: Rp ...
+      Metode: Cash/Transfer
+    """
+    width_pt = mm_to_pt(76)  # 76mm paper width
+    margin_x = 8
+    line_h = 12
+    header_lines = 6   # shop name, code, date, divider etc.
+    footer_lines = 6   # divider + totals + metode + final spacing
+    item_lines_per = 2 # we print two lines per item
+
+    items_count = len(transaction.get("items", []))
+    est_lines = header_lines + footer_lines + (items_count * item_lines_per)
+    height_pt = max(200, est_lines * line_h + 20)
+
     buffer = BytesIO()
-    styles = getSampleStyleSheet()
-
-    width = 76 * mm
-    # estimate height: header + items + footer
-    height = (60 + len(transaction["items"]) * 25 + 80) * mm
-
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=(width, height),
-        leftMargin=5,
-        rightMargin=5,
-        topMargin=5,
-        bottomMargin=5,
-    )
-    elements = []
+    c = canvas.Canvas(buffer, pagesize=(width_pt, height_pt))
+    y = height_pt - 14
 
     # Header
-    elements.append(Paragraph("<b>GLASS CASHIER</b>", styles["Title"]))
-    elements.append(Paragraph(f"Kode: {transaction['code']}", styles["Normal"]))
-    elements.append(Paragraph(transaction["datetime"][:19], styles["Normal"]))
-    elements.append(Spacer(1, 6))
+    c.setFont("Helvetica-Bold", 10)
+    c.drawCentredString(width_pt/2, y, SHOP_NAME)
+    y -= line_h
 
-    # Items table
-    data = [["Item", "Ukuran", "Qty", "Harga", "Subtotal"]]
-    for item in transaction["items"]:
-        ukuran = f"{item['width_cm']}x{item['height_cm']}cm"
-        data.append([
-            item["item"],
-            ukuran,
-            str(item["qty"]),
-            f"{item['unit_price']:,}",
-            f"{item['price']:,}",
-        ])
+    c.setFont("Helvetica", 8)
+    code = transaction.get("code", "GL-XXXXXX")
+    c.drawString(margin_x, y, f"Kode: {code}")
+    y -= line_h
 
-    table = Table(
-        data,
-        colWidths=[width*0.28, width*0.22, width*0.12, width*0.18, width*0.20]
-    )
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
-        ("GRID", (0,0), (-1,-1), 0.5, colors.black),
-        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
-        ("FONTSIZE", (0,0), (-1,-1), 8),
-        ("ALIGN", (2,1), (-1,-1), "RIGHT"),
-    ]))
-    elements.append(table)
-    elements.append(Spacer(1, 10))
+    tstr = transaction.get("datetime", "")[:16]
+    if not tstr:
+        tstr = datetime.datetime.now().strftime("%d-%m-%Y %H:%M")
+    else:
+        # pretty display: 2025-08-22T14:33 -> 22-08-2025 14:33
+        try:
+            dt = datetime.datetime.fromisoformat(transaction["datetime"])
+            tstr = dt.strftime("%d-%m-%Y %H:%M")
+        except Exception:
+            pass
+    c.drawString(margin_x, y, f"Tanggal: {tstr}")
+    y -= line_h
 
-    # Totals
-    elements.append(Paragraph(f"Total Qty: {transaction['total_qty']} pcs", styles["Normal"]))
-    elements.append(Paragraph(f"<b>Total: Rp {transaction['total']:,}</b>", styles["Normal"]))
-    elements.append(Paragraph(f"Metode: {transaction['method']}", styles["Normal"]))
+    c.line(margin_x, y, width_pt - margin_x, y)
+    y -= line_h
 
-    doc.build(elements)
+    # Items
+    c.setFont("Helvetica", 8)
+    for it in transaction.get("items", []):
+        name, w, h, qty, unit_price, subtotal, area_m2 = safe_item_fields(it)
+
+        # Line 1: Name + size
+        c.drawString(margin_x, y, f"{name}  {w}x{h} cm")
+        # Right-side subtotal
+        c.drawRightString(width_pt - margin_x, y, rupiah(subtotal))
+        y -= line_h
+
+        # Line 2: qty x unit = subtotal
+        c.drawString(margin_x, y, f"{qty} × {rupiah(unit_price)} = {rupiah(unit_price * qty)}")
+        y -= line_h
+
+        # Check if we are running out of space (just in case)
+        if y < (margin_x + 6*line_h):
+            c.showPage()
+            height_pt = max(200, 40*line_h)  # new page safety
+            c.setPageSize((width_pt, height_pt))
+            y = height_pt - 14
+            c.setFont("Helvetica", 8)
+
+    # Footer
+    c.line(margin_x, y, width_pt - margin_x, y)
+    y -= line_h
+
+    total_qty = int(transaction.get("total_qty", sum(safe_item_fields(i)[3] for i in transaction.get("items", []))))
+    total_sum = int(transaction.get("total", sum(safe_item_fields(i)[5] for i in transaction.get("items", []))))
+    method = transaction.get("method", "-")
+
+    c.drawString(margin_x, y, "Total Qty:")
+    c.drawRightString(width_pt - margin_x, y, str(total_qty))
+    y -= line_h
+
+    c.drawString(margin_x, y, "Total:")
+    c.drawRightString(width_pt - margin_x, y, rupiah(total_sum))
+    y -= line_h
+
+    c.drawString(margin_x, y, "Metode:")
+    c.drawRightString(width_pt - margin_x, y, method)
+    y -= line_h
+
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+def create_summary_pdf(title, lines):
+    width_pt = mm_to_pt(76)
+    margin_x = 8
+    line_h = 12
+    header_lines = 2
+    footer_lines = 1
+    est_lines = header_lines + footer_lines + len(lines)
+    height_pt = max(200, est_lines * line_h + 20)
+
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=(width_pt, height_pt))
+    y = height_pt - 14
+
+    c.setFont("Helvetica-Bold", 10)
+    c.drawCentredString(width_pt/2, y, title)
+    y -= line_h * 2
+    c.setFont("Helvetica", 8)
+    for line in lines:
+        c.drawString(margin_x, y, line)
+        y -= line_h
+        if y < (margin_x + 3*line_h):
+            c.showPage()
+            height_pt = max(200, 40*line_h)
+            c.setPageSize((width_pt, height_pt))
+            y = height_pt - 14
+            c.setFont("Helvetica", 8)
+
+    c.showPage()
+    c.save()
     buffer.seek(0)
     return buffer
 
@@ -145,7 +244,7 @@ height_cm = col2.number_input("Tinggi (cm)", min_value=0, value=0)
 if width_cm > 0 and height_cm > 0:
     area_m2 = (width_cm / 100) * (height_cm / 100)
     unit_price = int(area_m2 * base_price + SERVICE_FEE)
-    st.success(f"Harga per item: Rp {unit_price:,}")
+    st.success(f"Harga per item: {rupiah(unit_price)}")
 
     qty = st.number_input("Jumlah", min_value=1, value=1)
 
@@ -153,12 +252,13 @@ if width_cm > 0 and height_cm > 0:
         found = False
         for item in st.session_state["keranjang"]:
             if (
-                item["item"] == selected_item
-                and item["width_cm"] == width_cm
-                and item["height_cm"] == height_cm
+                item.get("item") == selected_item
+                and item.get("width_cm") == width_cm
+                and item.get("height_cm") == height_cm
             ):
-                item["qty"] += qty
+                item["qty"] = int(item.get("qty", 1)) + qty
                 raw_subtotal = item["qty"] * unit_price
+                item["unit_price"] = unit_price
                 item["price"] = math.ceil(raw_subtotal / 1000) * 1000
                 found = True
                 break
@@ -170,7 +270,7 @@ if width_cm > 0 and height_cm > 0:
                 "height_cm": height_cm,
                 "area_m2": area_m2,
                 "unit_price": unit_price,
-                "qty": qty,
+                "qty": int(qty),
                 "price": math.ceil((unit_price * qty) / 1000) * 1000,
             })
 
@@ -182,29 +282,30 @@ if st.session_state["keranjang"]:
     items_to_remove = []
 
     for idx, t in enumerate(st.session_state["keranjang"]):
+        name, w, h, qty, unit_p, subtotal, _ = safe_item_fields(t)
         col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
         with col1:
-            st.write(t["item"])
+            st.write(name)
         with col2:
-            st.write(f"{t['width_cm']} x {t['height_cm']} cm")
+            st.write(f"{w} x {h} cm")
         with col3:
-            st.write(f"{t['qty']}")
+            st.write(f"{qty}")
         with col4:
-            st.write(f"Rp {t['unit_price']:,}")
+            st.write(f"{rupiah(unit_p)}")
         with col5:
-            st.write(f"Rp {t['price']:,}")
+            st.write(f"{rupiah(subtotal)}")
         with col6:
             if st.button("❌", key=f"remove_{idx}"):
                 items_to_remove.append(idx)
 
-        total_qty += t["qty"]
-        total_price += t["price"]
+        total_qty += qty
+        total_price += subtotal
 
     for idx in sorted(items_to_remove, reverse=True):
         st.session_state["keranjang"].pop(idx)
 
     st.markdown(f"**Total Qty: {total_qty} pcs**")
-    st.markdown(f"**Total Keranjang: Rp {total_price:,}**")
+    st.markdown(f"**Total Keranjang: {rupiah(total_price)}**")
 
     method = st.radio("Pilih Metode Pembayaran", ["Cash", "Transfer"], horizontal=True)
     st.session_state["method"] = method
@@ -217,16 +318,16 @@ if st.session_state["keranjang"]:
         receipt_no = len(transactions_today) + 1
         receipt_code = generate_receipt_code(today_str, receipt_no)
 
-        total_qty = sum(t["qty"] for t in st.session_state["keranjang"])
-        total_price = sum(t["price"] for t in st.session_state["keranjang"])
+        total_qty = sum(safe_item_fields(t)[3] for t in st.session_state["keranjang"])
+        total_price = sum(safe_item_fields(t)[5] for t in st.session_state["keranjang"])
 
         transaction = {
             "code": receipt_code,
             "datetime": datetime.datetime.now().isoformat(),
             "items": st.session_state["keranjang"],
             "method": method,
-            "total_qty": total_qty,
-            "total": total_price,
+            "total_qty": int(total_qty),
+            "total": int(total_price),
         }
         transactions_today.append(transaction)
         save_transactions(filename, transactions_today)
@@ -251,13 +352,15 @@ transactions_today = load_transactions(filename)
 
 if transactions_today:
     for t in transactions_today:
-        qty_display = t.get("total_qty", sum(i.get("qty", 1) for i in t["items"]))
-        with st.expander(f"{t['code']} - Rp {t['total']:,} [{qty_display} pcs, {t['method']}]"):
-            for item in t["items"]:
+        qty_display = t.get("total_qty", sum(safe_item_fields(i)[3] for i in t.get("items", [])))
+        total_display = t.get("total", sum(safe_item_fields(i)[5] for i in t.get("items", [])))
+        method_display = t.get("method", "-")
+        with st.expander(f"{t.get('code','(tanpa kode)')} - {rupiah(total_display)} [{qty_display} pcs, {method_display}]"):
+            for item in t.get("items", []):
+                name, w, h, qty, unit_p, subtotal, area_m2 = safe_item_fields(item)
                 st.write(
-                    f"- {item['item']} | {item['width_cm']}x{item['height_cm']} cm | "
-                    f"{item.get('area_m2', 0):.2f} m² | {item.get('qty', 0)} pcs | "
-                    f"Rp {item['unit_price']:,} | Subtotal Rp {item['price']:,}"
+                    f"- {name} | {w}x{h} cm | {area_m2:.2f} m² | {qty} pcs | "
+                    f"{rupiah(unit_p)} | Subtotal {rupiah(subtotal)}"
                 )
 else:
     st.info("Belum ada transaksi hari ini.")
@@ -266,39 +369,24 @@ else:
 if st.button("Selesaikan Sesi"):
     by_method = {"Cash": [], "Transfer": []}
     for t in transactions_today:
-        by_method[t["method"]].append(t)
+        by_method[t.get("method", "-")].append(t)
 
     st.subheader("Ringkasan Sesi Hari Ini")
     summary_lines = []
     for method, txns in by_method.items():
         st.write(f"**Transaksi {method}**")
         for t in txns:
-            qty_display = t.get("total_qty", sum(i.get("qty", 1) for i in t["items"]))
-            st.write(f"{t['code']}: Rp {t['total']:,} ({qty_display} pcs)")
-        total_m = sum(t['total'] for t in txns)
-        st.write(f"Total {method}: Rp {total_m:,}")
-        summary_lines.append(f"{method}: Rp {total_m:,}")
+            qty_display = t.get("total_qty", sum(safe_item_fields(i)[3] for i in t.get("items", [])))
+            st.write(f"{t.get('code','(tanpa kode)')}: {rupiah(t.get('total', 0))} ({qty_display} pcs)")
+        total_m = sum(t.get('total', 0) for t in txns)
+        st.write(f"Total {method}: {rupiah(total_m)}")
+        summary_lines.append(f"{method}: {rupiah(total_m)}")
 
     summary_str = "\n".join(summary_lines)
     st.text_area("Struk Ringkasan", summary_str, height=180)
 
-    # summary PDF
-    summary_pdf = BytesIO()
-    doc = SimpleDocTemplate(
-        summary_pdf,
-        pagesize=(76*mm, (60 + len(summary_lines) * 20) * mm),
-        leftMargin=5,
-        rightMargin=5,
-        topMargin=5,
-        bottomMargin=5,
-    )
-    elements = [Paragraph("<b>Ringkasan Sesi</b>", getSampleStyleSheet()["Title"])]
-    for line in summary_lines:
-        elements.append(Paragraph(line, getSampleStyleSheet()["Normal"]))
-    doc.build(elements)
-    summary_pdf.seek(0)
-
-    st.download_button("⬇️ Download Ringkasan PDF", summary_pdf, file_name="summary.pdf", mime="application/pdf")
+    pdf = create_summary_pdf("Ringkasan Sesi", summary_lines)
+    st.download_button("⬇️ Download Ringkasan PDF", pdf, file_name="summary.pdf", mime="application/pdf")
 
 # --- Reprint function (Owner Only) ---
 st.subheader("🔁 Reprint Struk")
@@ -311,7 +399,7 @@ if st.session_state.get("last_receipt"):
                 st.download_button(
                     label="⬇️ Download Reprint PDF",
                     data=pdf,
-                    file_name=f"reprint_{st.session_state['last_receipt']['code']}.pdf",
+                    file_name=f"reprint_{st.session_state['last_receipt'].get('code','no_code')}.pdf",
                     mime="application/pdf"
                 )
         else:

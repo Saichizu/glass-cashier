@@ -86,8 +86,8 @@ def generate_receipt_code(date_str, count):
 # --- PDF UTILS ---
 def create_receipt_pdf(transaction):
     # --- Set up your margins ---
-    margin_left = 12   # Increase from 8 to 12 pt for left
-    margin_right = 12  # Increase for right
+    margin_left = 20   # Increase from 8 to 12 pt for left
+    margin_right = 20  # Increase for right
     margin_top = 16    # Increase for top
     margin_bottom = 16 # Increase for bottom
 

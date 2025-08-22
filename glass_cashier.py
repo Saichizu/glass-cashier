@@ -51,6 +51,17 @@ def save_transactions(filename, data):
 def generate_receipt_code(date_str, count):
     return f"GL{date_str}-{count:03d}"
 
+# --- PRINT UTILS ---
+def js_print():
+    st.markdown(
+        """
+        <script>
+        window.print();
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
+
 # --- SESSION STATE ---
 if "keranjang" not in st.session_state:
     st.session_state["keranjang"] = []  # for ongoing items
@@ -63,6 +74,9 @@ if "owner_mode" not in st.session_state:
 
 if "edit_date" not in st.session_state:
     st.session_state["edit_date"] = None
+
+if "last_receipt" not in st.session_state:
+    st.session_state["last_receipt"] = None
 
 # --- UI ---
 st.title("Glass Cashier App")
@@ -170,6 +184,21 @@ if st.session_state["keranjang"]:
         save_transactions(filename, transactions_today)
         st.success(f"Transaksi berhasil disimpan! Kode: {receipt_code}")
 
+        # Build receipt text
+        receipt_lines = [f"Kode: {receipt_code}", f"Tanggal: {datetime.datetime.now():%d-%m-%Y %H:%M}"]
+        for item in transaction["items"]:
+            receipt_lines.append(
+                f"- {item['item']} {item['width_cm']}x{item['height_cm']} cm x{item['qty']} = Rp {item['price']:,}"
+            )
+        receipt_lines.append(f"Total: Rp {transaction['total']:,}")
+        receipt_lines.append(f"Metode: {transaction['method']}")
+        receipt_str = "\n".join(receipt_lines)
+
+        st.session_state["last_receipt"] = receipt_str
+
+        st.text_area("🧾 Struk (Print)", receipt_str, height=180)
+        js_print()
+
         # kosongkan keranjang setelah bayar
         st.session_state["keranjang"] = []
 
@@ -222,6 +251,8 @@ if st.button("Selesaikan Sesi"):
         summary_lines.append(f"Total {method}: Rp {sum(t['total'] for t in txns):,}")
     summary_str = "\n".join(summary_lines)
     st.text_area("Struk Ringkasan (Print)", summary_str, height=180)
+    st.session_state["last_receipt"] = summary_str
+    js_print()
 
 # --- View other session ---
 st.subheader("📂 Lihat Sesi Lain / Riwayat Transaksi")
@@ -242,6 +273,8 @@ if st.button("Lihat Sesi Tanggal Ini"):
         summary_lines.append(f"Total: Rp {sum(t['total'] for t in txns):,}")
         summary_str = "\n".join(summary_lines)
         st.text_area("Struk Riwayat (Print)", summary_str, height=180)
+        st.session_state["last_receipt"] = summary_str
+        js_print()
 
 # --- Owner edit privilege ---
 if st.button("Edit (Owner Only)"):
@@ -263,6 +296,20 @@ if st.session_state["owner_mode"]:
             save_transactions(edit_filename, txns)
             st.success(f"Transaksi {t['code']} dihapus.")
             st.experimental_rerun()
+
+# --- Reprint function (Owner Only) ---
+st.subheader("🔁 Reprint Struk")
+if st.session_state.get("last_receipt"):
+    passcode = st.text_input("Masukkan Kode Owner untuk Reprint", type="password")
+    if passcode:
+        if passcode == OWNER_PASSCODE:
+            if st.button("Reprint"):
+                st.text_area("🧾 Reprint Struk", st.session_state["last_receipt"], height=180)
+                js_print()
+        else:
+            st.error("Kode salah. Tidak bisa reprint.")
+else:
+    st.info("Belum ada struk terakhir untuk di-reprint.")
 
 # --- Refresh button ---
 if st.button("Refresh"):

@@ -10,6 +10,8 @@ from zoneinfo import ZoneInfo
 # --- CONFIGURATION ---
 GITHUB_REPO = "Saichizu/glass-cashier"
 SHOP_NAME = "Glass Cashier App"  # shown at top of receipt
+if st.button("Refresh"):
+    st.rerun()
 
 # --- ITEMS ---
 ITEMS = [
@@ -442,8 +444,7 @@ if st.session_state.get("last_receipt") and st.session_state.get("last_receipt_p
 else:
     st.info("Belum ada struk terakhir untuk di-reprint.")
 
-if st.button("Refresh"):
-    st.rerun()
+
 
 # --- RIWAYAT SESI HARIAN (Moved to very bottom) ---
 st.subheader("📅 Riwayat Sesi Harian")

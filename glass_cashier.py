@@ -114,19 +114,32 @@ if width_cm > 0 and height_cm > 0:
 # --- Keranjang (ongoing transaction) ---
 if st.session_state["keranjang"]:
     st.subheader("🛒 Keranjang")
-    st.table([
-        {
-            "Barang": t["item"],
-            "Ukuran": f'{t["width_cm"]} x {t["height_cm"]} cm',
-            "Qty": t["qty"],
-            "Harga Satuan": f'Rp {t["unit_price"]:,}',
-            "Subtotal": f'Rp {t["price"]:,}',
-        }
-        for t in st.session_state["keranjang"]
-    ])
+    total_qty = 0
+    total_price = 0
+    items_to_remove = []
 
-    total_qty = sum(t["qty"] for t in st.session_state["keranjang"])
-    total_price = sum(t["price"] for t in st.session_state["keranjang"])
+    for idx, t in enumerate(st.session_state["keranjang"]):
+        col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
+        with col1:
+            st.write(t["item"])
+        with col2:
+            st.write(f"{t['width_cm']} x {t['height_cm']} cm")
+        with col3:
+            st.write(f"{t['qty']}")
+        with col4:
+            st.write(f"Rp {t['unit_price']:,}")
+        with col5:
+            st.write(f"Rp {t['price']:,}")
+        with col6:
+            if st.button("❌", key=f"remove_{idx}"):
+                items_to_remove.append(idx)
+
+        total_qty += t["qty"]
+        total_price += t["price"]
+
+    # Remove selected items
+    for idx in sorted(items_to_remove, reverse=True):
+        st.session_state["keranjang"].pop(idx)
 
     st.markdown(f"**Total Qty: {total_qty} pcs**")
     st.markdown(f"**Total Keranjang: Rp {total_price:,}**")

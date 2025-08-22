@@ -135,7 +135,7 @@ def create_receipt_pdf(transaction):
     c.setFont("Helvetica", 8)
     for it in transaction.get("items", []):
         name, w, h, qty, unit_price, subtotal, area_m2 = safe_item_fields(it)
-        c.drawString(margin_left, y, f"{name}  {w}x{h} cm")
+        c.drawString(margin_left, y, f"{name}  {w:.2f}x{h:.2f} cm")
         c.drawRightString(width_pt - margin_right, y, rupiah(subtotal))
         y -= line_h
 
@@ -233,15 +233,16 @@ height_cm = col2.number_input("Tinggi (cm)", min_value=0.0, value=st.session_sta
 qty = st.number_input("Jumlah", min_value=1, value=st.session_state.get("qty", 1), key="qty")
 
 add_col, clear_col = st.columns([2, 1])
-with add_col:
-    add_clicked = st.button("➕ Tambah ke Keranjang")
-with clear_col:
-    clear_input_clicked = st.button("🧹 Clear Tambah ke Keranjang")
 
-if clear_input_clicked:
+def clear_inputs():
     st.session_state["width_cm"] = 0.0
     st.session_state["height_cm"] = 0.0
     st.session_state["qty"] = 1
+
+with add_col:
+    add_clicked = st.button("➕ Tambah ke Keranjang")
+with clear_col:
+    st.button("🧹 Clear Tambah ke Keranjang", on_click=clear_inputs)
 
 if width_cm > 0 and height_cm > 0:
     area_m2 = (width_cm / 100) * (height_cm / 100)
@@ -287,7 +288,7 @@ if st.session_state["keranjang"]:
         with col1:
             st.write(name)
         with col2:
-            st.write(f"{w:.2f} x {h:.2f} cm")  # PATCH: show two decimals
+            st.write(f"{w:.2f} x {h:.2f} cm")
         with col3:
             st.write(f"{qty}")
         with col4:
@@ -311,7 +312,8 @@ if st.session_state["keranjang"]:
     st.session_state["method"] = method
 
     pay_enabled = method is not None
-    if st.button("💳 Bayar", disabled=not pay_enabled):
+
+    def bayar_action():
         today_str = datetime.datetime.now().strftime("%d%m%y")
         filename = get_today_filename()
         transactions_today = load_transactions(filename)
@@ -343,10 +345,12 @@ if st.session_state["keranjang"]:
         )
 
         st.session_state["last_receipt"] = transaction
-        st.session_state["keranjang"] = []             # Clear cart
-        st.session_state["width_cm"] = 0.0             # Clear item input
-        st.session_state["height_cm"] = 0.0            # Clear item input
-        st.session_state["qty"] = 1                    # Reset qty
+        st.session_state["keranjang"] = []
+        st.session_state["width_cm"] = 0.0
+        st.session_state["height_cm"] = 0.0
+        st.session_state["qty"] = 1
+
+    st.button("💳 Bayar", disabled=not pay_enabled, on_click=bayar_action)
 
 # --- Daftar Transaksi Hari Ini ---
 st.subheader("📑 Daftar Transaksi Hari Ini")

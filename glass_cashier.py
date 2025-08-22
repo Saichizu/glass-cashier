@@ -123,7 +123,10 @@ if st.session_state["keranjang"]:
         for t in st.session_state["keranjang"]
     ])
 
+    total_qty = sum(t["qty"] for t in st.session_state["keranjang"])
     total_price = sum(t["price"] for t in st.session_state["keranjang"])
+
+    st.markdown(f"**Total Qty: {total_qty} pcs**")
     st.markdown(f"**Total Keranjang: Rp {total_price:,}**")
 
     method = st.radio("Pilih Metode Pembayaran", ["Cash", "Transfer"], horizontal=True)
@@ -137,11 +140,15 @@ if st.session_state["keranjang"]:
         receipt_no = len(transactions_today) + 1
         receipt_code = generate_receipt_code(today_str, receipt_no)
 
+        total_qty = sum(t["qty"] for t in st.session_state["keranjang"])
+        total_price = sum(t["price"] for t in st.session_state["keranjang"])
+
         transaction = {
             "code": receipt_code,
             "datetime": datetime.datetime.now().isoformat(),
             "items": st.session_state["keranjang"],
             "method": method,
+            "total_qty": total_qty,
             "total": total_price,
         }
         transactions_today.append(transaction)
@@ -158,7 +165,8 @@ transactions_today = load_transactions(filename)
 
 if transactions_today:
     for t in transactions_today:
-        with st.expander(f"{t['code']} - Rp {t['total']:,} [{t['method']}]"):
+        qty_display = t.get("total_qty", sum(i.get("qty", 1) for i in t["items"]))
+        with st.expander(f"{t['code']} - Rp {t['total']:,} [{qty_display} pcs, {t['method']}]"):
             for item in t["items"]:
                 # backward compatible display
                 if "qty" in item:  
@@ -175,7 +183,6 @@ if transactions_today:
 else:
     st.info("Belum ada transaksi hari ini.")
 
-
 # --- Finish session ---
 if st.button("Selesaikan Sesi"):
     by_method = {"Cash": [], "Transfer": []}
@@ -186,7 +193,8 @@ if st.button("Selesaikan Sesi"):
     for method, txns in by_method.items():
         st.write(f"**Transaksi {method}**")
         for t in txns:
-            st.write(f"{t['code']}: Rp {t['total']:,}")
+            qty_display = t.get("total_qty", sum(i.get("qty", 1) for i in t["items"]))
+            st.write(f"{t['code']}: Rp {t['total']:,} ({qty_display} pcs)")
         st.write(f"Total {method}: Rp {sum(t['total'] for t in txns):,}")
 
     summary_lines = []
@@ -194,7 +202,8 @@ if st.button("Selesaikan Sesi"):
     for method, txns in by_method.items():
         summary_lines.append(f"--- {method} ---")
         for t in txns:
-            summary_lines.append(f"{t['code']}: Rp {t['total']:,}")
+            qty_display = t.get("total_qty", sum(i.get("qty", 1) for i in t["items"]))
+            summary_lines.append(f"{t['code']}: Rp {t['total']:,} ({qty_display} pcs)")
         summary_lines.append(f"Total {method}: Rp {sum(t['total'] for t in txns):,}")
     summary_str = "\n".join(summary_lines)
     st.text_area("Struk Ringkasan (Print)", summary_str, height=180)
@@ -208,11 +217,13 @@ if st.button("Lihat Sesi Tanggal Ini"):
     st.session_state["edit_date"] = filename
     st.subheader(f"Transaksi pada {date_str.strftime('%d-%m-%Y')}")
     for t in txns:
-        st.write(f"{t['code']} - Rp {t['total']:,} [{t['method']}]")
+        qty_display = t.get("total_qty", sum(i.get("qty", 1) for i in t["items"]))
+        st.write(f"{t['code']} - Rp {t['total']:,} [{qty_display} pcs, {t['method']}]")
     if st.button("Print Sesi Tanggal Ini"):
         summary_lines = []
         for t in txns:
-            summary_lines.append(f"{t['code']} - Rp {t['total']:,} [{t['method']}]")
+            qty_display = t.get("total_qty", sum(i.get("qty", 1) for i in t["items"]))
+            summary_lines.append(f"{t['code']} - Rp {t['total']:,} [{qty_display} pcs, {t['method']}]")
         summary_lines.append(f"Total: Rp {sum(t['total'] for t in txns):,}")
         summary_str = "\n".join(summary_lines)
         st.text_area("Struk Riwayat (Print)", summary_str, height=180)

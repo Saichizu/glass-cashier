@@ -227,10 +227,11 @@ selected_item = st.selectbox("Pilih Barang", item_names)
 item_obj = next(item for item in ITEMS if item["name"] == selected_item)
 base_price = item_obj["base_price"]
 
-col1, col2 = st.columns(2)
+# PATCH: qty on same row as width and height
+col1, col2, col3 = st.columns(3)
 width_cm = col1.number_input("Lebar (cm)", min_value=0.0, value=st.session_state.get("width_cm", 0.0), step=0.1, format="%.2f", key="width_cm")
 height_cm = col2.number_input("Tinggi (cm)", min_value=0.0, value=st.session_state.get("height_cm", 0.0), step=0.1, format="%.2f", key="height_cm")
-qty = st.number_input("Jumlah", min_value=1, value=st.session_state.get("qty", 1), key="qty")
+qty = col3.number_input("Jumlah", min_value=1, value=st.session_state.get("qty", 1), key="qty")
 
 add_col, clear_col = st.columns([2, 1])
 

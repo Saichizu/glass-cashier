@@ -96,7 +96,7 @@ if st.button("➕ Tambah Item"):
         st.error("Masukkan ukuran yang valid untuk menambahkan item.")
 
 # --------------------
-# Transaction list
+# Transaction list + Payment
 # --------------------
 if st.session_state["transactions"]:
     st.subheader("Daftar Transaksi Hari Ini")
@@ -134,3 +134,80 @@ if st.session_state["transactions"]:
         save_transactions(filename, transactions_today)
         st.success(f"Transaksi berhasil disimpan! Kode: {receipt_code}")
         st.session_state["transactions"] = []
+
+# --------------------
+# Finish session
+# --------------------
+if st.button("Selesaikan Sesi"):
+    filename = get_today_filename()
+    transactions_today = load_transactions(filename)
+    by_method = {"Cash": [], "Transfer": []}
+    for t in transactions_today:
+        by_method[t["method"]].append(t)
+    st.subheader("Ringkasan Sesi Hari Ini")
+    for method, txns in by_method.items():
+        st.write(f"**Transaksi {method}**")
+        for t in txns:
+            st.write(f"{t['code']}: Rp {t['total']:,}")
+        st.write(f"Total {method}: Rp {sum(t['total'] for t in txns):,}")
+
+    # Print-friendly summary for 76mm receipt
+    summary_lines = []
+    summary_lines.append("---- RINGKASAN SESI ----")
+    for method, txns in by_method.items():
+        summary_lines.append(f"--- {method} ---")
+        for t in txns:
+            summary_lines.append(f"{t['code']}: Rp {t['total']:,}")
+        summary_lines.append(f"Total {method}: Rp {sum(t['total'] for t in txns):,}")
+    summary_str = "\n".join(summary_lines)
+    st.text_area("Struk Ringkasan (Print)", summary_str, height=180)
+
+# --------------------
+# View other session
+# --------------------
+st.subheader("Lihat Sesi Lain / Riwayat Transaksi")
+date_str = st.date_input("Tanggal Sesi", value=datetime.datetime.now())
+filename = date_str.strftime("%Y%m%d") + ".json"
+if st.button("Lihat Sesi Tanggal Ini"):
+    txns = load_transactions(filename)
+    st.session_state["edit_date"] = filename
+    st.subheader(f"Transaksi pada {date_str.strftime('%d-%m-%Y')}")
+    for t in txns:
+        st.write(f"{t['code']} - Rp {t['total']:,} [{t['method']}]")
+    # Print session
+    if st.button("Print Sesi Tanggal Ini"):
+        summary_lines = []
+        for t in txns:
+            summary_lines.append(f"{t['code']} - Rp {t['total']:,} [{t['method']}]")
+        summary_lines.append(f"Total: Rp {sum(t['total'] for t in txns):,}")
+        summary_str = "\n".join(summary_lines)
+        st.text_area("Struk Riwayat (Print)", summary_str, height=180)
+
+# --------------------
+# Owner edit privilege
+# --------------------
+if st.button("Edit (Owner Only)"):
+    passcode = st.text_input("Masukkan Kode Owner", type="password")
+    if passcode == OWNER_PASSCODE:
+        st.session_state["owner_mode"] = True
+        st.success("Owner mode aktif.")
+    else:
+        st.error("Kode salah.")
+
+if st.session_state["owner_mode"]:
+    st.subheader("Edit Transaksi")
+    edit_filename = st.session_state.get("edit_date") or get_today_filename()
+    txns = load_transactions(edit_filename)
+    for idx, t in enumerate(txns):
+        st.write(f"{t['code']} - Rp {t['total']:,}")
+        if st.button(f"Hapus {t['code']}", key=f"del_{t['code']}_{edit_filename}"):
+            txns.pop(idx)
+            save_transactions(edit_filename, txns)
+            st.success(f"Transaksi {t['code']} dihapus.")
+            st.experimental_rerun()
+
+# --------------------
+# Refresh button
+# --------------------
+if st.button("Refresh"):
+    st.experimental_rerun()

@@ -4,7 +4,10 @@ import json
 import math
 from github import Github
 from io import BytesIO
-from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import mm
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
 
 # --- CONFIGURATION ---
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
@@ -56,37 +59,60 @@ def generate_receipt_code(date_str, count):
 # --- PDF UTILS ---
 def create_receipt_pdf(transaction):
     buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=(220, 600))  # narrow width for thermal-like receipt
-    y = 570
+    styles = getSampleStyleSheet()
 
-    c.setFont("Helvetica-Bold", 10)
-    c.drawCentredString(110, y, "Glass Cashier App")
-    y -= 15
-    c.setFont("Helvetica", 8)
-    c.drawCentredString(110, y, transaction["datetime"][:19])
+    width = 76 * mm
+    # estimate height: header + items + footer
+    height = (60 + len(transaction["items"]) * 25 + 80) * mm
 
-    y -= 20
-    c.setFont("Helvetica", 9)
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=(width, height),
+        leftMargin=5,
+        rightMargin=5,
+        topMargin=5,
+        bottomMargin=5,
+    )
+    elements = []
+
+    # Header
+    elements.append(Paragraph("<b>GLASS CASHIER</b>", styles["Title"]))
+    elements.append(Paragraph(f"Kode: {transaction['code']}", styles["Normal"]))
+    elements.append(Paragraph(transaction["datetime"][:19], styles["Normal"]))
+    elements.append(Spacer(1, 6))
+
+    # Items table
+    data = [["Item", "Ukuran", "Qty", "Harga", "Subtotal"]]
     for item in transaction["items"]:
-        line = f"{item['item']} {item['width_cm']}x{item['height_cm']} x{item['qty']}"
-        c.drawString(10, y, line)
-        c.drawRightString(210, y, f"Rp {item['price']:,}")
-        y -= 15
+        ukuran = f"{item['width_cm']}x{item['height_cm']}cm"
+        data.append([
+            item["item"],
+            ukuran,
+            str(item["qty"]),
+            f"{item['unit_price']:,}",
+            f"{item['price']:,}",
+        ])
 
-    y -= 5
-    c.line(10, y, 210, y)
-    y -= 15
-    c.drawString(10, y, "Total Qty")
-    c.drawRightString(210, y, str(transaction["total_qty"]))
-    y -= 15
-    c.drawString(10, y, "Total")
-    c.drawRightString(210, y, f"Rp {transaction['total']:,}")
-    y -= 15
-    c.drawString(10, y, "Metode")
-    c.drawRightString(210, y, transaction["method"])
+    table = Table(
+        data,
+        colWidths=[width*0.28, width*0.22, width*0.12, width*0.18, width*0.20]
+    )
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
+        ("GRID", (0,0), (-1,-1), 0.5, colors.black),
+        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+        ("FONTSIZE", (0,0), (-1,-1), 8),
+        ("ALIGN", (2,1), (-1,-1), "RIGHT"),
+    ]))
+    elements.append(table)
+    elements.append(Spacer(1, 10))
 
-    c.showPage()
-    c.save()
+    # Totals
+    elements.append(Paragraph(f"Total Qty: {transaction['total_qty']} pcs", styles["Normal"]))
+    elements.append(Paragraph(f"<b>Total: Rp {transaction['total']:,}</b>", styles["Normal"]))
+    elements.append(Paragraph(f"Metode: {transaction['method']}", styles["Normal"]))
+
+    doc.build(elements)
     buffer.seek(0)
     return buffer
 
@@ -228,17 +254,11 @@ if transactions_today:
         qty_display = t.get("total_qty", sum(i.get("qty", 1) for i in t["items"]))
         with st.expander(f"{t['code']} - Rp {t['total']:,} [{qty_display} pcs, {t['method']}]"):
             for item in t["items"]:
-                if "qty" in item:
-                    st.write(
-                        f"- {item['item']} | {item['width_cm']}x{item['height_cm']} cm | "
-                        f"{item['area_m2']:.2f} m² | {item['qty']} pcs | "
-                        f"Rp {item['unit_price']:,} | Subtotal Rp {item['price']:,}"
-                    )
-                else:
-                    st.write(
-                        f"- {item['item']} | {item['width_cm']}x{item['height_cm']} cm | "
-                        f"{item['area_m2']:.2f} m² | Rp {item['price']:,}"
-                    )
+                st.write(
+                    f"- {item['item']} | {item['width_cm']}x{item['height_cm']} cm | "
+                    f"{item['area_m2']:.2f} m² | {item['qty']} pcs | "
+                    f"Rp {item['unit_price']:,} | Subtotal Rp {item['price']:,}"
+                )
 else:
     st.info("Belum ada transaksi hari ini.")
 
@@ -262,21 +282,23 @@ if st.button("Selesaikan Sesi"):
     summary_str = "\n".join(summary_lines)
     st.text_area("Struk Ringkasan", summary_str, height=180)
 
-    pdf = BytesIO()
-    c = canvas.Canvas(pdf, pagesize=(220, 600))
-    y = 570
-    c.setFont("Helvetica-Bold", 10)
-    c.drawCentredString(110, y, "Ringkasan Sesi")
-    y -= 20
-    c.setFont("Helvetica", 8)
+    # summary PDF
+    summary_pdf = BytesIO()
+    doc = SimpleDocTemplate(
+        summary_pdf,
+        pagesize=(76*mm, (60 + len(summary_lines) * 20) * mm),
+        leftMargin=5,
+        rightMargin=5,
+        topMargin=5,
+        bottomMargin=5,
+    )
+    elements = [Paragraph("<b>Ringkasan Sesi</b>", getSampleStyleSheet()["Title"])]
     for line in summary_lines:
-        c.drawString(10, y, line)
-        y -= 15
-    c.showPage()
-    c.save()
-    pdf.seek(0)
+        elements.append(Paragraph(line, getSampleStyleSheet()["Normal"]))
+    doc.build(elements)
+    summary_pdf.seek(0)
 
-    st.download_button("⬇️ Download Ringkasan PDF", pdf, file_name="summary.pdf", mime="application/pdf")
+    st.download_button("⬇️ Download Ringkasan PDF", summary_pdf, file_name="summary.pdf", mime="application/pdf")
 
 # --- Reprint function (Owner Only) ---
 st.subheader("🔁 Reprint Struk")

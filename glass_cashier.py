@@ -1,6 +1,7 @@
 import streamlit as st
 import datetime
 import json
+import math
 from github import Github
 
 # --- CONFIGURATION ---
@@ -94,7 +95,8 @@ if width_cm > 0 and height_cm > 0:
                 and item["height_cm"] == height_cm
             ):
                 item["qty"] += qty
-                item["price"] = item["qty"] * unit_price
+                raw_subtotal = item["qty"] * unit_price
+                item["price"] = math.ceil(raw_subtotal / 1000) * 1000
                 found = True
                 break
 
@@ -106,7 +108,7 @@ if width_cm > 0 and height_cm > 0:
                 "area_m2": area_m2,
                 "unit_price": unit_price,
                 "qty": qty,
-                "price": unit_price * qty,
+                "price": math.ceil((unit_price * qty) / 1000) * 1000,
             })
 
 # --- Keranjang (ongoing transaction) ---

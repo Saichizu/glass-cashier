@@ -86,10 +86,10 @@ def generate_receipt_code(date_str, count):
 # --- PDF UTILS ---
 def create_receipt_pdf(transaction):
     # --- Set up your margins ---
-    margin_left = 20   # Increase from 8 to 12 pt for left
-    margin_right = 20  # Increase for right
-    margin_top = 16    # Increase for top
-    margin_bottom = 16 # Increase for bottom
+    margin_left = 20   # left margin
+    margin_right = 20  # right margin
+    margin_top = 16    # top margin
+    margin_bottom = 16 # bottom margin
 
     width_pt = mm_to_pt(76)
     line_h = 12
@@ -170,30 +170,34 @@ def create_receipt_pdf(transaction):
     return buffer
 
 def create_summary_pdf(title, lines):
+    margin_left = 20
+    margin_right = 20
+    margin_top = 16
+    margin_bottom = 16
+
     width_pt = mm_to_pt(76)
-    margin_x = 8
     line_h = 12
     header_lines = 2
     footer_lines = 1
     est_lines = header_lines + footer_lines + len(lines)
-    height_pt = max(200, est_lines * line_h + 20)
+    height_pt = est_lines * line_h + margin_top + margin_bottom
 
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=(width_pt, height_pt))
-    y = height_pt - 14
+    y = height_pt - margin_top
 
     c.setFont("Helvetica-Bold", 10)
     c.drawCentredString(width_pt/2, y, title)
     y -= line_h * 2
     c.setFont("Helvetica", 8)
     for line in lines:
-        c.drawString(margin_x, y, line)
+        c.drawString(margin_left, y, line)
         y -= line_h
-        if y < (margin_x + 3*line_h):
+        if y < (margin_left + 3*line_h):
             c.showPage()
-            height_pt = max(200, 40*line_h)
+            height_pt = 40*line_h + margin_top + margin_bottom
             c.setPageSize((width_pt, height_pt))
-            y = height_pt - 14
+            y = height_pt - margin_top
             c.setFont("Helvetica", 8)
 
     c.showPage()

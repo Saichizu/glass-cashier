@@ -7,7 +7,6 @@ from io import BytesIO
 from reportlab.pdfgen import canvas
 
 # --- CONFIGURATION ---
-GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 GITHUB_REPO = "Saichizu/glass-cashier"
 SHOP_NAME = "Glass Cashier App"  # shown at top of receipt
 
@@ -50,50 +49,42 @@ def safe_item_fields(item):
 
 # --- GITHUB UTILS ---
 def get_github_client():
-    return Github(GITHUB_TOKEN)
+    github_token = st.secrets.get("GITHUB_TOKEN", None)
+    if not github_token or not isinstance(github_token, str) or not github_token.strip():
+        st.error("GITHUB_TOKEN not found or empty in Streamlit secrets. Please set your token in app settings.")
+        raise ValueError("Missing or empty GITHUB_TOKEN in Streamlit secrets.")
+    return Github(github_token)
 
 def get_today_filename():
     today = datetime.datetime.now().strftime("%Y%m%d")
     return f"{today}.json"
 
 def load_transactions(filename):
-    g = get_github_client()
-    repo = g.get_repo(GITHUB_REPO)
     try:
+        g = get_github_client()
+        repo = g.get_repo(GITHUB_REPO)
         file_content = repo.get_contents(filename).decoded_content.decode()
         return json.loads(file_content)
     except Exception:
         return []
 
 def save_transactions(filename, data):
-    g = get_github_client()
-    repo = g.get_repo(GITHUB_REPO)
     try:
-        file = repo.get_contents(filename)
-        repo.update_file(filename, "Update transactions", json.dumps(data, indent=2), file.sha)
-    except Exception:
-        repo.create_file(filename, "Create transactions", json.dumps(data, indent=2))
+        g = get_github_client()
+        repo = g.get_repo(GITHUB_REPO)
+        try:
+            file = repo.get_contents(filename)
+            repo.update_file(filename, "Update transactions", json.dumps(data, indent=2), file.sha)
+        except Exception:
+            repo.create_file(filename, "Create transactions", json.dumps(data, indent=2))
+    except Exception as e:
+        st.error(f"Gagal menyimpan transaksi: {e}")
 
 def generate_receipt_code(date_str, count):
     return f"GL{date_str}-{count:03d}"
 
 # --- PDF UTILS ---
 def create_receipt_pdf(transaction):
-    """
-    76mm width, dynamic height.
-    Layout:
-      Title
-      Kode: GL...
-      Tanggal: ...
-      ---------------------------------
-      <Nama item>  W x H cm
-      Qty x Harga Satuan = Subtotal
-      (repeat)
-      ---------------------------------
-      Total Qty: N
-      Total: Rp ...
-      Metode: Cash/Transfer
-    """
     width_pt = mm_to_pt(76)  # 76mm paper width
     margin_x = 8
     line_h = 12
@@ -123,7 +114,6 @@ def create_receipt_pdf(transaction):
     if not tstr:
         tstr = datetime.datetime.now().strftime("%d-%m-%Y %H:%M")
     else:
-        # pretty display: 2025-08-22T14:33 -> 22-08-2025 14:33
         try:
             dt = datetime.datetime.fromisoformat(transaction["datetime"])
             tstr = dt.strftime("%d-%m-%Y %H:%M")
@@ -142,7 +132,6 @@ def create_receipt_pdf(transaction):
 
         # Line 1: Name + size
         c.drawString(margin_x, y, f"{name}  {w}x{h} cm")
-        # Right-side subtotal
         c.drawRightString(width_pt - margin_x, y, rupiah(subtotal))
         y -= line_h
 
@@ -150,7 +139,6 @@ def create_receipt_pdf(transaction):
         c.drawString(margin_x, y, f"{qty} × {rupiah(unit_price)} = {rupiah(unit_price * qty)}")
         y -= line_h
 
-        # Check if we are running out of space (just in case)
         if y < (margin_x + 6*line_h):
             c.showPage()
             height_pt = max(200, 40*line_h)  # new page safety

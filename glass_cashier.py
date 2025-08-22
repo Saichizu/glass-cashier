@@ -283,13 +283,13 @@ if st.session_state["keranjang"]:
     # Add header row for cart columns
     col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
     with col1:
-        st.markdown("**Nama Barang**")
+        st.markdown("**Item**")
     with col2:
         st.markdown("**Ukuran (cm)**")
     with col3:
-        st.markdown("**Jumlah**")
+        st.markdown("**QTY**")
     with col4:
-        st.markdown("**Harga Satuan**")
+        st.markdown("**Harga**")
     with col5:
         st.markdown("**Subtotal**")
     with col6:

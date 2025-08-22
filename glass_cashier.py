@@ -80,7 +80,6 @@ def save_transactions(filename, data):
 def generate_receipt_code(date_str, count):
     return f"GL{date_str}-{count:03d}"
 
-# --- SESSION FILES UTILS ---
 def list_session_files():
     try:
         g = get_github_client()
@@ -93,7 +92,6 @@ def list_session_files():
         st.error(f"Gagal mengambil daftar sesi: {e}")
         return []
 
-# --- PDF UTILS ---
 def create_receipt_pdf(transaction):
     margin_left = 20
     margin_right = 20
@@ -222,6 +220,20 @@ if "last_receipt_pdf" not in st.session_state:
     st.session_state["last_receipt_pdf"] = None
 if "reprint_passcode" not in st.session_state:
     st.session_state["reprint_passcode"] = ""
+if "just_paid" not in st.session_state:
+    st.session_state["just_paid"] = False
+
+# --- SAFE RESET for widget values ---
+def safe_reset():
+    # Only reset widget state if just_paid and before widgets are rendered
+    if st.session_state.get("just_paid"):
+        st.session_state["keranjang"] = []
+        st.session_state["width_cm"] = 0.0
+        st.session_state["height_cm"] = 0.0
+        st.session_state["qty"] = 1
+        st.session_state["just_paid"] = False
+
+safe_reset()
 
 st.title("Glass Cashier App")
 
@@ -238,7 +250,6 @@ height_cm = col2.number_input("Tinggi (cm)", min_value=0.0, value=st.session_sta
 qty = col3.number_input("Jumlah", min_value=1, value=st.session_state.get("qty", 1), key="qty")
 
 def clear_inputs():
-    # Only set widget keys via callback
     st.session_state["width_cm"] = 0.0
     st.session_state["height_cm"] = 0.0
     st.session_state["qty"] = 1
@@ -318,12 +329,6 @@ if st.session_state["keranjang"]:
     pay_enabled = method is not None
 
     # BAYAR BUTTON
-    def after_payment_reset():
-        st.session_state["keranjang"] = []
-        st.session_state["width_cm"] = 0.0
-        st.session_state["height_cm"] = 0.0
-        st.session_state["qty"] = 1
-
     if st.button("💳 Bayar", disabled=not pay_enabled):
         today_str = datetime.datetime.now().strftime("%d%m%y")
         filename = get_today_filename()
@@ -346,14 +351,13 @@ if st.session_state["keranjang"]:
         pdf = create_receipt_pdf(transaction)
         st.session_state["last_receipt"] = transaction
         st.session_state["last_receipt_pdf"] = pdf
-        # Show download option immediately after bayar
         st.download_button(
             label="⬇️ Download Receipt PDF",
             data=pdf,
             file_name=f"{receipt_code}.pdf",
             mime="application/pdf"
         )
-        after_payment_reset()
+        st.session_state["just_paid"] = True
 
 # --- Daftar Transaksi Hari Ini ---
 st.subheader("📑 Daftar Transaksi Hari Ini")

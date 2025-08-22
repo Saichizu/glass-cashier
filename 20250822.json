@@ -34,5 +34,23 @@
     "method": "Cash",
     "total_qty": 10,
     "total": 1430000
+  },
+  {
+    "code": "GL220825-003",
+    "datetime": "2025-08-22T07:12:50.735235",
+    "items": [
+      {
+        "item": "Kaca Polos 5MM",
+        "width_cm": 88,
+        "height_cm": 49,
+        "area_m2": 0.43119999999999997,
+        "unit_price": 82428,
+        "qty": 1,
+        "price": 83000
+      }
+    ],
+    "method": "Cash",
+    "total_qty": 1,
+    "total": 83000
   }
 ]

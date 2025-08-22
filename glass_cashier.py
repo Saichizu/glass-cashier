@@ -228,8 +228,9 @@ item_obj = next(item for item in ITEMS if item["name"] == selected_item)
 base_price = item_obj["base_price"]
 
 col1, col2 = st.columns(2)
-width_cm = col1.number_input("Lebar (cm)", min_value=0, value=0)
-height_cm = col2.number_input("Tinggi (cm)", min_value=0, value=0)
+# PATCH: allow decimals, use step and format for two decimals
+width_cm = col1.number_input("Lebar (cm)", min_value=0.0, value=0.0, step=0.1, format="%.2f")
+height_cm = col2.number_input("Tinggi (cm)", min_value=0.0, value=0.0, step=0.1, format="%.2f")
 
 if width_cm > 0 and height_cm > 0:
     area_m2 = (width_cm / 100) * (height_cm / 100)
@@ -241,10 +242,11 @@ if width_cm > 0 and height_cm > 0:
     if st.button("➕ Tambah ke Keranjang"):
         found = False
         for item in st.session_state["keranjang"]:
+            # PATCH: use float for comparison to avoid rounding errors
             if (
                 item.get("item") == selected_item
-                and item.get("width_cm") == width_cm
-                and item.get("height_cm") == height_cm
+                and float(item.get("width_cm", 0)) == float(width_cm)
+                and float(item.get("height_cm", 0)) == float(height_cm)
             ):
                 item["qty"] = int(item.get("qty", 1)) + qty
                 raw_subtotal = item["qty"] * unit_price
@@ -256,8 +258,8 @@ if width_cm > 0 and height_cm > 0:
         if not found:
             st.session_state["keranjang"].append({
                 "item": selected_item,
-                "width_cm": width_cm,
-                "height_cm": height_cm,
+                "width_cm": float(width_cm),
+                "height_cm": float(height_cm),
                 "area_m2": area_m2,
                 "unit_price": unit_price,
                 "qty": int(qty),
@@ -277,7 +279,7 @@ if st.session_state["keranjang"]:
         with col1:
             st.write(name)
         with col2:
-            st.write(f"{w} x {h} cm")
+            st.write(f"{w:.2f} x {h:.2f} cm")  # PATCH: show two decimals
         with col3:
             st.write(f"{qty}")
         with col4:
@@ -349,7 +351,7 @@ if transactions_today:
             for item in t.get("items", []):
                 name, w, h, qty, unit_p, subtotal, area_m2 = safe_item_fields(item)
                 st.write(
-                    f"- {name} | {w}x{h} cm | {area_m2:.2f} m² | {qty} pcs | "
+                    f"- {name} | {w:.2f}x{h:.2f} cm | {area_m2:.2f} m² | {qty} pcs | "
                     f"{rupiah(unit_p)} | Subtotal {rupiah(subtotal)}"
                 )
 else:

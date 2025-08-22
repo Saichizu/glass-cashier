@@ -4,6 +4,7 @@ import json
 from github import Github
 
 # --- CONFIGURATION ---
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 GITHUB_REPO = "Saichizu/glass-cashier"
 
 # --- ITEMS ---

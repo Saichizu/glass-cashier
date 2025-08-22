@@ -335,7 +335,10 @@ if st.session_state["keranjang"]:
         )
 
         st.session_state["last_receipt"] = transaction
-        st.session_state["keranjang"] = []
+        st.session_state["keranjang"] = []             # Clear cart
+        st.session_state["width_cm"] = 0.0             # Clear item input
+        st.session_state["height_cm"] = 0.0            # Clear item input
+        st.session_state["qty"] = 1                    # Reset qty
 
 # --- Daftar Transaksi Hari Ini ---
 st.subheader("📑 Daftar Transaksi Hari Ini")

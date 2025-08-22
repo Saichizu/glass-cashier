@@ -3,6 +3,8 @@ import datetime
 import json
 import math
 from github import Github
+from io import BytesIO
+from reportlab.pdfgen import canvas
 
 # --- CONFIGURATION ---
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
@@ -51,33 +53,52 @@ def save_transactions(filename, data):
 def generate_receipt_code(date_str, count):
     return f"GL{date_str}-{count:03d}"
 
-# --- PRINT UTILS ---
-def js_print():
-    st.markdown(
-        """
-        <script>
-        setTimeout(function() {
-            window.print();
-        }, 800);  // wait 0.8s so receipt renders first
-        </script>
-        """,
-        unsafe_allow_html=True,
-    )
+# --- PDF UTILS ---
+def create_receipt_pdf(transaction):
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=(220, 600))  # narrow width for thermal-like receipt
+    y = 570
 
+    c.setFont("Helvetica-Bold", 10)
+    c.drawCentredString(110, y, "Glass Cashier App")
+    y -= 15
+    c.setFont("Helvetica", 8)
+    c.drawCentredString(110, y, transaction["datetime"][:19])
+
+    y -= 20
+    c.setFont("Helvetica", 9)
+    for item in transaction["items"]:
+        line = f"{item['item']} {item['width_cm']}x{item['height_cm']} x{item['qty']}"
+        c.drawString(10, y, line)
+        c.drawRightString(210, y, f"Rp {item['price']:,}")
+        y -= 15
+
+    y -= 5
+    c.line(10, y, 210, y)
+    y -= 15
+    c.drawString(10, y, "Total Qty")
+    c.drawRightString(210, y, str(transaction["total_qty"]))
+    y -= 15
+    c.drawString(10, y, "Total")
+    c.drawRightString(210, y, f"Rp {transaction['total']:,}")
+    y -= 15
+    c.drawString(10, y, "Metode")
+    c.drawRightString(210, y, transaction["method"])
+
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return buffer
 
 # --- SESSION STATE ---
 if "keranjang" not in st.session_state:
-    st.session_state["keranjang"] = []  # for ongoing items
-
+    st.session_state["keranjang"] = []
 if "method" not in st.session_state:
     st.session_state["method"] = None
-
 if "owner_mode" not in st.session_state:
     st.session_state["owner_mode"] = False
-
 if "edit_date" not in st.session_state:
     st.session_state["edit_date"] = None
-
 if "last_receipt" not in st.session_state:
     st.session_state["last_receipt"] = None
 
@@ -103,7 +124,6 @@ if width_cm > 0 and height_cm > 0:
     qty = st.number_input("Jumlah", min_value=1, value=1)
 
     if st.button("➕ Tambah ke Keranjang"):
-        # cek apakah barang dengan ukuran sama sudah ada
         found = False
         for item in st.session_state["keranjang"]:
             if (
@@ -154,7 +174,6 @@ if st.session_state["keranjang"]:
         total_qty += t["qty"]
         total_price += t["price"]
 
-    # Remove selected items
     for idx in sorted(items_to_remove, reverse=True):
         st.session_state["keranjang"].pop(idx)
 
@@ -187,22 +206,16 @@ if st.session_state["keranjang"]:
         save_transactions(filename, transactions_today)
         st.success(f"Transaksi berhasil disimpan! Kode: {receipt_code}")
 
-        # Build receipt text
-        receipt_lines = [f"Kode: {receipt_code}", f"Tanggal: {datetime.datetime.now():%d-%m-%Y %H:%M}"]
-        for item in transaction["items"]:
-            receipt_lines.append(
-                f"- {item['item']} {item['width_cm']}x{item['height_cm']} cm x{item['qty']} = Rp {item['price']:,}"
-            )
-        receipt_lines.append(f"Total: Rp {transaction['total']:,}")
-        receipt_lines.append(f"Metode: {transaction['method']}")
-        receipt_str = "\n".join(receipt_lines)
+        # PDF receipt download
+        pdf = create_receipt_pdf(transaction)
+        st.download_button(
+            label="⬇️ Download Receipt PDF",
+            data=pdf,
+            file_name=f"{receipt_code}.pdf",
+            mime="application/pdf"
+        )
 
-        st.session_state["last_receipt"] = receipt_str
-
-        st.text_area("🧾 Struk (Print)", receipt_str, height=180)
-        js_print()
-
-        # kosongkan keranjang setelah bayar
+        st.session_state["last_receipt"] = transaction
         st.session_state["keranjang"] = []
 
 # --- Daftar Transaksi Hari Ini ---
@@ -215,14 +228,13 @@ if transactions_today:
         qty_display = t.get("total_qty", sum(i.get("qty", 1) for i in t["items"]))
         with st.expander(f"{t['code']} - Rp {t['total']:,} [{qty_display} pcs, {t['method']}]"):
             for item in t["items"]:
-                # backward compatible display
-                if "qty" in item:  
+                if "qty" in item:
                     st.write(
                         f"- {item['item']} | {item['width_cm']}x{item['height_cm']} cm | "
                         f"{item['area_m2']:.2f} m² | {item['qty']} pcs | "
                         f"Rp {item['unit_price']:,} | Subtotal Rp {item['price']:,}"
                     )
-                else:  # old format
+                else:
                     st.write(
                         f"- {item['item']} | {item['width_cm']}x{item['height_cm']} cm | "
                         f"{item['area_m2']:.2f} m² | Rp {item['price']:,}"
@@ -237,68 +249,34 @@ if st.button("Selesaikan Sesi"):
         by_method[t["method"]].append(t)
 
     st.subheader("Ringkasan Sesi Hari Ini")
+    summary_lines = []
     for method, txns in by_method.items():
         st.write(f"**Transaksi {method}**")
         for t in txns:
             qty_display = t.get("total_qty", sum(i.get("qty", 1) for i in t["items"]))
             st.write(f"{t['code']}: Rp {t['total']:,} ({qty_display} pcs)")
-        st.write(f"Total {method}: Rp {sum(t['total'] for t in txns):,}")
+        total_m = sum(t['total'] for t in txns)
+        st.write(f"Total {method}: Rp {total_m:,}")
+        summary_lines.append(f"{method}: Rp {total_m:,}")
 
-    summary_lines = []
-    summary_lines.append("---- RINGKASAN SESI ----")
-    for method, txns in by_method.items():
-        summary_lines.append(f"--- {method} ---")
-        for t in txns:
-            qty_display = t.get("total_qty", sum(i.get("qty", 1) for i in t["items"]))
-            summary_lines.append(f"{t['code']}: Rp {t['total']:,} ({qty_display} pcs)")
-        summary_lines.append(f"Total {method}: Rp {sum(t['total'] for t in txns):,}")
     summary_str = "\n".join(summary_lines)
-    st.text_area("Struk Ringkasan (Print)", summary_str, height=180)
-    st.session_state["last_receipt"] = summary_str
-    js_print()
+    st.text_area("Struk Ringkasan", summary_str, height=180)
 
-# --- View other session ---
-st.subheader("📂 Lihat Sesi Lain / Riwayat Transaksi")
-date_str = st.date_input("Tanggal Sesi", value=datetime.datetime.now())
-filename = date_str.strftime("%Y%m%d") + ".json"
-if st.button("Lihat Sesi Tanggal Ini"):
-    txns = load_transactions(filename)
-    st.session_state["edit_date"] = filename
-    st.subheader(f"Transaksi pada {date_str.strftime('%d-%m-%Y')}")
-    for t in txns:
-        qty_display = t.get("total_qty", sum(i.get("qty", 1) for i in t["items"]))
-        st.write(f"{t['code']} - Rp {t['total']:,} [{qty_display} pcs, {t['method']}]")
-    if st.button("Print Sesi Tanggal Ini"):
-        summary_lines = []
-        for t in txns:
-            qty_display = t.get("total_qty", sum(i.get("qty", 1) for i in t["items"]))
-            summary_lines.append(f"{t['code']} - Rp {t['total']:,} [{qty_display} pcs, {t['method']}]")
-        summary_lines.append(f"Total: Rp {sum(t['total'] for t in txns):,}")
-        summary_str = "\n".join(summary_lines)
-        st.text_area("Struk Riwayat (Print)", summary_str, height=180)
-        st.session_state["last_receipt"] = summary_str
-        js_print()
+    pdf = BytesIO()
+    c = canvas.Canvas(pdf, pagesize=(220, 600))
+    y = 570
+    c.setFont("Helvetica-Bold", 10)
+    c.drawCentredString(110, y, "Ringkasan Sesi")
+    y -= 20
+    c.setFont("Helvetica", 8)
+    for line in summary_lines:
+        c.drawString(10, y, line)
+        y -= 15
+    c.showPage()
+    c.save()
+    pdf.seek(0)
 
-# --- Owner edit privilege ---
-if st.button("Edit (Owner Only)"):
-    passcode = st.text_input("Masukkan Kode Owner", type="password")
-    if passcode == OWNER_PASSCODE:
-        st.session_state["owner_mode"] = True
-        st.success("Owner mode aktif.")
-    else:
-        st.error("Kode salah.")
-
-if st.session_state["owner_mode"]:
-    st.subheader("Edit Transaksi")
-    edit_filename = st.session_state.get("edit_date") or get_today_filename()
-    txns = load_transactions(edit_filename)
-    for idx, t in enumerate(txns):
-        st.write(f"{t['code']} - Rp {t['total']:,}")
-        if st.button(f"Hapus {t['code']}", key=f"del_{t['code']}_{edit_filename}"):
-            txns.pop(idx)
-            save_transactions(edit_filename, txns)
-            st.success(f"Transaksi {t['code']} dihapus.")
-            st.experimental_rerun()
+    st.download_button("⬇️ Download Ringkasan PDF", pdf, file_name="summary.pdf", mime="application/pdf")
 
 # --- Reprint function (Owner Only) ---
 st.subheader("🔁 Reprint Struk")
@@ -307,8 +285,13 @@ if st.session_state.get("last_receipt"):
     if passcode:
         if passcode == OWNER_PASSCODE:
             if st.button("Reprint"):
-                st.text_area("🧾 Reprint Struk", st.session_state["last_receipt"], height=180)
-                js_print()
+                pdf = create_receipt_pdf(st.session_state["last_receipt"])
+                st.download_button(
+                    label="⬇️ Download Reprint PDF",
+                    data=pdf,
+                    file_name=f"reprint_{st.session_state['last_receipt']['code']}.pdf",
+                    mime="application/pdf"
+                )
         else:
             st.error("Kode salah. Tidak bisa reprint.")
 else:

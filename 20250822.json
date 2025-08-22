@@ -57,5 +57,20 @@
     ],
     "method": "Cash",
     "total": 1621500
+  },
+  {
+    "code": "GL220825-004",
+    "datetime": "2025-08-22T04:18:20.795820",
+    "items": [
+      {
+        "item": "Kaca Polos 3MM",
+        "width_cm": 150,
+        "height_cm": 200,
+        "area_m2": 3.0,
+        "price": 450500
+      }
+    ],
+    "method": "Cash",
+    "total": 450500
   }
 ]

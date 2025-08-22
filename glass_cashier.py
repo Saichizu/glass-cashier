@@ -9,13 +9,13 @@ GITHUB_REPO = "Saichizu/glass-cashier"
 
 # --- ITEMS ---
 ITEMS = [
-    {"name": "Kaca Polos 5MM", "base_price": 190_000},
-    {"name": "Kaca Reben 5MM", "base_price": 200_000},
-    {"name": "Kaca Reben 3MM", "base_price": 160_000},
-    {"name": "Kaca Polos 3MM", "base_price": 150_000},
-    {"name": "Kaca Cermin", "base_price": 240_000},
-    {"name": "Kaca Polos Utuh", "base_price": 140_000},
-    {"name": "Kaca Reben Utuh", "base_price": 150_000},
+    {"name": "Kaca Polos 5MM", "base_price": 190000},
+    {"name": "Kaca Reben 5MM", "base_price": 200000},
+    {"name": "Kaca Reben 3MM", "base_price": 160000},
+    {"name": "Kaca Polos 3MM", "base_price": 150000},
+    {"name": "Kaca Cermin", "base_price": 240000},
+    {"name": "Kaca Polos Utuh", "base_price": 140000},
+    {"name": "Kaca Reben Utuh", "base_price": 150000},
 ]
 
 SERVICE_FEE = 500

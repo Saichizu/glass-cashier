@@ -4,7 +4,6 @@ import json
 from github import Github
 
 # --- CONFIGURATION ---
-GITHUB_TOKEN = "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"
 GITHUB_REPO = "Saichizu/glass-cashier"
 
 # --- ITEMS ---

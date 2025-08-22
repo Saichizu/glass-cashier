@@ -218,7 +218,7 @@ if "last_receipt" not in st.session_state:
     st.session_state["last_receipt"] = None
 
 # --- UI ---
-st.title("Glass Cashier App")
+st.title("GLASS CASHIER")
 
 # Item selection
 st.subheader("Tambah ke Keranjang")

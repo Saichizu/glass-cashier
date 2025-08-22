@@ -85,20 +85,26 @@ def generate_receipt_code(date_str, count):
 
 # --- PDF UTILS ---
 def create_receipt_pdf(transaction):
-    width_pt = mm_to_pt(76)  # 76mm paper width
-    margin_x = 8
-    line_h = 12
-    header_lines = 6   # shop name, code, date, divider etc.
-    footer_lines = 6   # divider + totals + metode + final spacing
-    item_lines_per = 2 # we print two lines per item
+    # --- Set up your margins ---
+    margin_left = 12   # Increase from 8 to 12 pt for left
+    margin_right = 12  # Increase for right
+    margin_top = 16    # Increase for top
+    margin_bottom = 16 # Increase for bottom
 
+    width_pt = mm_to_pt(76)
+    line_h = 12
+    header_lines = 6
+    footer_lines = 6
+    item_lines_per = 2
     items_count = len(transaction.get("items", []))
     est_lines = header_lines + footer_lines + (items_count * item_lines_per)
-    height_pt = max(200, est_lines * line_h + 20)
+
+    # Calculate PDF height with bottom margin
+    height_pt = est_lines * line_h + margin_top + margin_bottom
 
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=(width_pt, height_pt))
-    y = height_pt - 14
+    y = height_pt - margin_top  # Start below the top margin
 
     # Header
     c.setFont("Helvetica-Bold", 10)
@@ -107,7 +113,7 @@ def create_receipt_pdf(transaction):
 
     c.setFont("Helvetica", 8)
     code = transaction.get("code", "GL-XXXXXX")
-    c.drawString(margin_x, y, f"Kode: {code}")
+    c.drawString(margin_left, y, f"Kode: {code}")
     y -= line_h
 
     tstr = transaction.get("datetime", "")[:16]
@@ -119,51 +125,43 @@ def create_receipt_pdf(transaction):
             tstr = dt.strftime("%d-%m-%Y %H:%M")
         except Exception:
             pass
-    c.drawString(margin_x, y, f"Tanggal: {tstr}")
+    c.drawString(margin_left, y, f"Tanggal: {tstr}")
     y -= line_h
 
-    c.line(margin_x, y, width_pt - margin_x, y)
+    c.line(margin_left, y, width_pt - margin_right, y)
     y -= line_h
 
     # Items
     c.setFont("Helvetica", 8)
     for it in transaction.get("items", []):
         name, w, h, qty, unit_price, subtotal, area_m2 = safe_item_fields(it)
-
-        # Line 1: Name + size
-        c.drawString(margin_x, y, f"{name}  {w}x{h} cm")
-        c.drawRightString(width_pt - margin_x, y, rupiah(subtotal))
+        c.drawString(margin_left, y, f"{name}  {w}x{h} cm")
+        c.drawRightString(width_pt - margin_right, y, rupiah(subtotal))
         y -= line_h
 
-        # Line 2: qty x unit = subtotal
-        c.drawString(margin_x, y, f"{qty} × {rupiah(unit_price)} = {rupiah(unit_price * qty)}")
+        c.drawString(margin_left, y, f"{qty} × {rupiah(unit_price)} = {rupiah(unit_price * qty)}")
         y -= line_h
 
-        if y < (margin_x + 6*line_h):
-            c.showPage()
-            height_pt = max(200, 40*line_h)  # new page safety
-            c.setPageSize((width_pt, height_pt))
-            y = height_pt - 14
-            c.setFont("Helvetica", 8)
+        # Page break logic, but unlikely needed for short receipts
 
     # Footer
-    c.line(margin_x, y, width_pt - margin_x, y)
+    c.line(margin_left, y, width_pt - margin_right, y)
     y -= line_h
 
     total_qty = int(transaction.get("total_qty", sum(safe_item_fields(i)[3] for i in transaction.get("items", []))))
     total_sum = int(transaction.get("total", sum(safe_item_fields(i)[5] for i in transaction.get("items", []))))
     method = transaction.get("method", "-")
 
-    c.drawString(margin_x, y, "Total Qty:")
-    c.drawRightString(width_pt - margin_x, y, str(total_qty))
+    c.drawString(margin_left, y, "Total Qty:")
+    c.drawRightString(width_pt - margin_right, y, str(total_qty))
     y -= line_h
 
-    c.drawString(margin_x, y, "Total:")
-    c.drawRightString(width_pt - margin_x, y, rupiah(total_sum))
+    c.drawString(margin_left, y, "Total:")
+    c.drawRightString(width_pt - margin_right, y, rupiah(total_sum))
     y -= line_h
 
-    c.drawString(margin_x, y, "Metode:")
-    c.drawRightString(width_pt - margin_x, y, method)
+    c.drawString(margin_left, y, "Metode:")
+    c.drawRightString(width_pt - margin_right, y, method)
     y -= line_h
 
     c.showPage()

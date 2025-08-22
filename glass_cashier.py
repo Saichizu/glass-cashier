@@ -279,6 +279,22 @@ if width_cm > 0 and height_cm > 0:
 # --- Keranjang (ongoing transaction) ---
 if st.session_state["keranjang"]:
     st.subheader("🛒 Keranjang")
+
+    # Add header row for cart columns
+    col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
+    with col1:
+        st.markdown("**Nama Barang**")
+    with col2:
+        st.markdown("**Ukuran (cm)**")
+    with col3:
+        st.markdown("**Jumlah**")
+    with col4:
+        st.markdown("**Harga Satuan**")
+    with col5:
+        st.markdown("**Subtotal**")
+    with col6:
+        st.markdown("**Hapus**")
+
     total_qty = 0
     total_price = 0
     items_to_remove = []

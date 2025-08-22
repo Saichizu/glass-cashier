@@ -79,17 +79,35 @@ height_cm = col2.number_input("Tinggi (cm)", min_value=0, value=0)
 
 if width_cm > 0 and height_cm > 0:
     area_m2 = (width_cm / 100) * (height_cm / 100)
-    price = int(area_m2 * base_price + SERVICE_FEE)
-    st.success(f"Total Harga: Rp {price:,}")
+    unit_price = int(area_m2 * base_price + SERVICE_FEE)
+    st.success(f"Harga per item: Rp {unit_price:,}")
+
+    qty = st.number_input("Jumlah", min_value=1, value=1)
 
     if st.button("➕ Tambah ke Keranjang"):
-        st.session_state["keranjang"].append({
-            "item": selected_item,
-            "width_cm": width_cm,
-            "height_cm": height_cm,
-            "area_m2": area_m2,
-            "price": price,
-        })
+        # cek apakah barang dengan ukuran sama sudah ada
+        found = False
+        for item in st.session_state["keranjang"]:
+            if (
+                item["item"] == selected_item
+                and item["width_cm"] == width_cm
+                and item["height_cm"] == height_cm
+            ):
+                item["qty"] += qty
+                item["price"] = item["qty"] * unit_price
+                found = True
+                break
+
+        if not found:
+            st.session_state["keranjang"].append({
+                "item": selected_item,
+                "width_cm": width_cm,
+                "height_cm": height_cm,
+                "area_m2": area_m2,
+                "unit_price": unit_price,
+                "qty": qty,
+                "price": unit_price * qty,
+            })
 
 # --- Keranjang (ongoing transaction) ---
 if st.session_state["keranjang"]:
@@ -98,8 +116,9 @@ if st.session_state["keranjang"]:
         {
             "Barang": t["item"],
             "Ukuran": f'{t["width_cm"]} x {t["height_cm"]} cm',
-            "Luas (m2)": f'{t["area_m2"]:.2f}',
-            "Harga": f'Rp {t["price"]:,}'
+            "Qty": t["qty"],
+            "Harga Satuan": f'Rp {t["unit_price"]:,}',
+            "Subtotal": f'Rp {t["price"]:,}',
         }
         for t in st.session_state["keranjang"]
     ])
@@ -143,7 +162,7 @@ if transactions_today:
             for item in t["items"]:
                 st.write(
                     f"- {item['item']} | {item['width_cm']}x{item['height_cm']} cm | "
-                    f"{item['area_m2']:.2f} m² | Rp {item['price']:,}"
+                    f"{item['qty']} pcs | Rp {item['unit_price']:,} | Subtotal Rp {item['price']:,}"
                 )
 else:
     st.info("Belum ada transaksi hari ini.")

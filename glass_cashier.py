@@ -10,8 +10,7 @@ from zoneinfo import ZoneInfo
 # --- CONFIGURATION ---
 GITHUB_REPO = "Saichizu/glass-cashier"
 SHOP_NAME = "Glass Cashier App"  # shown at top of receipt
-if st.button("Refresh"):
-    st.rerun()
+
 
 # --- ITEMS ---
 ITEMS = [
@@ -239,6 +238,8 @@ def safe_reset():
 safe_reset()
 
 st.title("Glass Cashier App")
+if st.button("Refresh"):
+    st.rerun()
 
 # --- Item selection
 st.subheader("Tambah ke Keranjang")

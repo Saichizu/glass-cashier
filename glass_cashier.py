@@ -5,6 +5,7 @@ import math
 from github import Github
 from io import BytesIO
 from reportlab.pdfgen import canvas
+from zoneinfo import ZoneInfo
 
 # --- CONFIGURATION ---
 GITHUB_REPO = "Saichizu/glass-cashier"
@@ -53,7 +54,7 @@ def get_github_client():
     return Github(github_token)
 
 def get_today_filename():
-    today = datetime.datetime.now().strftime("%Y%m%d")
+    today = datetime.datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d")
     return f"{today}.json"
 
 def load_transactions(filename):
@@ -122,7 +123,7 @@ def create_receipt_pdf(transaction):
 
     tstr = transaction.get("datetime", "")[:16]
     if not tstr:
-        tstr = datetime.datetime.now().strftime("%d-%m-%Y %H:%M")
+        tstr = datetime.datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%d-%m-%Y %H:%M")
     else:
         try:
             dt = datetime.datetime.fromisoformat(transaction["datetime"])
@@ -330,7 +331,7 @@ if st.session_state["keranjang"]:
 
     # BAYAR BUTTON
     if st.button("💳 Bayar", disabled=not pay_enabled):
-        today_str = datetime.datetime.now().strftime("%d%m%y")
+        today_str = datetime.datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%d%m%y")
         filename = get_today_filename()
         transactions_today = load_transactions(filename)
         receipt_no = len(transactions_today) + 1
@@ -339,7 +340,7 @@ if st.session_state["keranjang"]:
         total_price = sum(safe_item_fields(t)[5] for t in st.session_state["keranjang"])
         transaction = {
             "code": receipt_code,
-            "datetime": datetime.datetime.now().isoformat(),
+            "datetime": datetime.datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(),
             "items": st.session_state["keranjang"],
             "method": method,
             "total_qty": int(total_qty),

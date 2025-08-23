@@ -164,7 +164,7 @@ def create_receipt_pdf(transaction):
     c.setFont("Helvetica", 8)
     for it in transaction.get("items", []):
         name, w, h, qty, unit_price, subtotal, area_m2 = safe_item_fields(it)
-        c.drawString(margin_left, y, f"{name}  {w:.2f}x{h:.2f} cm")
+        c.drawString(margin_left, y, f"{name}  {round(w,2):g}x{round(h,2):g} cm")
         c.drawRightString(width_pt - margin_right, y, rupiah(subtotal))
         y -= line_h
 
@@ -350,7 +350,7 @@ if st.session_state["keranjang"]:
         name, w, h, qty, unit_p, subtotal, _ = safe_item_fields(t)
         col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
         with col1: st.write(name)
-        with col2: st.write(f"{w:.2f} x {h:.2f} cm")
+        with col2: st.write(f"{round(w,2):g} x {round(h,2):g} cm")
         with col3: st.write(f"{qty}")
         with col4: st.write(f"{rupiah(unit_p)}")
         with col5: st.write(f"{rupiah(subtotal)}")
@@ -427,7 +427,7 @@ if transactions_today:
                 name, w, h, qty, unit_p, subtotal, area_m2 = safe_item_fields(item)
                 col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
                 with col1: st.write(name)
-                with col2: st.write(f"{w:.2f} x {h:.2f}")
+                with col2: st.write(f"{round(w,2):g} x {round(h,2):g}")
                 with col3: st.write(f"{qty}")
                 with col4: st.write(f"{rupiah(unit_p)}")
                 with col5: st.write(f"{rupiah(subtotal)}")
@@ -508,7 +508,7 @@ if session_files:
                     name, w, h, qty, unit_p, subtotal, area_m2 = safe_item_fields(item)
                     col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
                     with col1: st.write(name)
-                    with col2: st.write(f"{w:.2f} x {h:.2f}")
+                    with col2: st.write(f"{round(w,2):g} x {round(h,2):g}")
                     with col3: st.write(f"{qty}")
                     with col4: st.write(f"{rupiah(unit_p)}")
                     with col5: st.write(f"{rupiah(subtotal)}")

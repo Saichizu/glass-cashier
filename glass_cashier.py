@@ -407,11 +407,8 @@ filename = get_today_filename()
 transactions_today = load_transactions(filename)
 
 # 🔄 Sort so latest transactions appear first
-transactions_today = sorted(
-    transactions_today,
-    key=lambda x: x.get("timestamp", ""),
-    reverse=True
-)
+transactions_today = list(reversed(transactions_today))
+
 
 if transactions_today:
     for i, t in enumerate(transactions_today):

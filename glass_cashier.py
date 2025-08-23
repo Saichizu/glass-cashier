@@ -298,11 +298,13 @@ def clear_inputs():
         "qty": 1,
     })
 
-add_col, clear_col = st.columns([2, 1])
+add_col, clear_col = st.columns([3, 2])  # Adjust ratio if needed
+
 with add_col:
-    add_clicked = st.button("➕ Tambah ke Keranjang")
+    add_clicked = st.button("➕ Tambah ke Keranjang", use_container_width=True)
+
 with clear_col:
-    st.button("🧹 Bersihkan", on_click=clear_inputs)
+    st.button("🧹 Bersihkan", on_click=clear_inputs, use_container_width=True)
 
 if width_cm > 0 and height_cm > 0:
     area_m2 = (width_cm / 100) * (height_cm / 100)

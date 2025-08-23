@@ -491,51 +491,72 @@ if st.button("Selesaikan Sesi"):
 
 # --- RIWAYAT SESI HARIAN (Moved to very bottom) ---
 st.subheader("📅 Riwayat Sesi Harian")
-session_files = list_session_files()
-if session_files:
-    sesi_label = [f"Sesi {f[:4]}-{f[4:6]}-{f[6:8]}" for f in session_files]
-    selected_idx = st.selectbox("Pilih Sesi", range(len(session_files)), format_func=lambda x: sesi_label[x])
-    selected_file = session_files[selected_idx]
 
-    st.info(f"Menampilkan transaksi dari sesi: **{sesi_label[selected_idx]}**")
-    transactions = load_transactions(selected_file)
-    if transactions:
-        for i, t in enumerate(transactions):
-            qty_display = t.get("total_qty", sum(safe_item_fields(it)[3] for it in t.get("items", [])))
-            total_display = t.get("total", sum(safe_item_fields(it)[5] for it in t.get("items", [])))
-            method_display = t.get("method", "-")
-            with st.expander(f"{t.get('code','(tanpa kode)')} - {rupiah(total_display)} [{qty_display} pcs, {method_display}]"):
-                col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
-                with col1: st.markdown("**Item**")
-                with col2: st.markdown("**Ukuran (cm)**")
-                with col3: st.markdown("**Qty**")
-                with col4: st.markdown("**Harga Satuan**")
-                with col5: st.markdown("**Subtotal**")
-                with col6: st.markdown("")
-                for item in t.get("items", []):
-                    name, w, h, qty, unit_p, subtotal, area_m2 = safe_item_fields(item)
+# Initialize toggle state if not exists
+if "show_riwayat" not in st.session_state:
+    st.session_state["show_riwayat"] = False
+
+# Toggle button
+if st.button("👁️ Tampilkan Riwayat" if not st.session_state["show_riwayat"] else "🙈 Sembunyikan Riwayat"):
+    st.session_state["show_riwayat"] = not st.session_state["show_riwayat"]
+    st.rerun()
+
+# Only render riwayat if visible
+if st.session_state["show_riwayat"]:
+    session_files = list_session_files()
+    if session_files:
+        sesi_label = [f"Sesi {f[:4]}-{f[4:6]}-{f[6:8]}" for f in session_files]
+        selected_idx = st.selectbox(
+            "Pilih Sesi",
+            range(len(session_files)),
+            format_func=lambda x: sesi_label[x]
+        )
+        selected_file = session_files[selected_idx]
+
+        st.info(f"Menampilkan transaksi dari sesi: **{sesi_label[selected_idx]}**")
+        transactions = load_transactions(selected_file)
+        if transactions:
+            for i, t in enumerate(transactions):
+                qty_display = t.get("total_qty", sum(safe_item_fields(it)[3] for it in t.get("items", [])))
+                total_display = t.get("total", sum(safe_item_fields(it)[5] for it in t.get("items", [])))
+                method_display = t.get("method", "-")
+                with st.expander(f"{t.get('code','(tanpa kode)')} - {rupiah(total_display)} [{qty_display} pcs, {method_display}]"):
                     col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
-                    with col1: st.write(name)
-                    with col2: st.write(f"{round(w,2):g} x {round(h,2):g}")
-                    with col3: st.write(f"{qty}")
-                    with col4: st.write(f"{rupiah(unit_p)}")
-                    with col5: st.write(f"{rupiah(subtotal)}")
-                    with col6: st.write("")
-                # Reprint for session transactions
-                passcode = st.text_input(f"Masukkan Kode Owner untuk Reprint [{t.get('code','no_code')}] (Riwayat)", type="password", key=f"riwayat_reprint_passcode_{i}")
-                if passcode:
-                    if passcode == OWNER_PASSCODE:
-                        if st.button(f"Reprint Struk [{t.get('code','no_code')}] (Riwayat)", key=f"riwayat_reprint_btn_{i}"):
-                            pdf = create_receipt_pdf(t)
-                            st.download_button(
-                                label=f"⬇️ Download Reprint PDF [{t.get('code','no_code')}]",
-                                data=pdf,
-                                file_name=f"reprint_{t.get('code','no_code')}.pdf",
-                                mime="application/pdf"
-                            )
-                    else:
-                        st.error("Kode salah. Tidak bisa reprint.")
+                    with col1: st.markdown("**Item**")
+                    with col2: st.markdown("**Ukuran (cm)**")
+                    with col3: st.markdown("**Qty**")
+                    with col4: st.markdown("**Harga Satuan**")
+                    with col5: st.markdown("**Subtotal**")
+                    with col6: st.markdown("")
+                    for item in t.get("items", []):
+                        name, w, h, qty, unit_p, subtotal, area_m2 = safe_item_fields(item)
+                        col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
+                        with col1: st.write(name)
+                        with col2: st.write(f"{round(w,2):g} x {round(h,2):g}")
+                        with col3: st.write(f"{qty}")
+                        with col4: st.write(f"{rupiah(unit_p)}")
+                        with col5: st.write(f"{rupiah(subtotal)}")
+                        with col6: st.write("")
+                    # Reprint for session transactions
+                    passcode = st.text_input(
+                        f"Masukkan Kode Owner untuk Reprint [{t.get('code','no_code')}] (Riwayat)",
+                        type="password",
+                        key=f"riwayat_reprint_passcode_{i}"
+                    )
+                    if passcode:
+                        if passcode == OWNER_PASSCODE:
+                            if st.button(f"Reprint Struk [{t.get('code','no_code')}] (Riwayat)", key=f"riwayat_reprint_btn_{i}"):
+                                pdf = create_receipt_pdf(t)
+                                st.download_button(
+                                    label=f"⬇️ Download Reprint PDF [{t.get('code','no_code')}]",
+                                    data=pdf,
+                                    file_name=f"reprint_{t.get('code','no_code')}.pdf",
+                                    mime="application/pdf"
+                                )
+                        else:
+                            st.error("Kode salah. Tidak bisa reprint.")
+        else:
+            st.info("Tidak ada transaksi pada sesi ini.")
     else:
-        st.info("Tidak ada transaksi pada sesi ini.")
-else:
-    st.info("Belum ada sesi harian yang tercatat.")
+        st.info("Belum ada sesi harian yang tercatat.")
+

@@ -97,5 +97,77 @@
     "method": "Cash",
     "total_qty": 1,
     "total": 68000
+  },
+  {
+    "code": "GL230825-006",
+    "datetime": "2025-08-23T10:58:09.664219+08:00",
+    "items": [
+      {
+        "item": "Kaca Cermin",
+        "width_cm": 35.5,
+        "height_cm": 114.4,
+        "area_m2": 0.40612000000000004,
+        "unit_price": 97968,
+        "qty": 1,
+        "price": 98000
+      },
+      {
+        "item": "Kaca Cermin",
+        "width_cm": 34.5,
+        "height_cm": 122.0,
+        "area_m2": 0.42089999999999994,
+        "unit_price": 101515,
+        "qty": 1,
+        "price": 102000
+      },
+      {
+        "item": "Kaca Reben 5MM",
+        "width_cm": 38.0,
+        "height_cm": 110.0,
+        "area_m2": 0.41800000000000004,
+        "unit_price": 84100,
+        "qty": 4,
+        "price": 337000
+      },
+      {
+        "item": "Kaca Reben 5MM",
+        "width_cm": 38.0,
+        "height_cm": 128.0,
+        "area_m2": 0.4864,
+        "unit_price": 97780,
+        "qty": 2,
+        "price": 196000
+      },
+      {
+        "item": "Kaca Reben 5MM",
+        "width_cm": 26.0,
+        "height_cm": 137.0,
+        "area_m2": 0.3562,
+        "unit_price": 71740,
+        "qty": 2,
+        "price": 144000
+      },
+      {
+        "item": "Kaca Reben 5MM",
+        "width_cm": 26.0,
+        "height_cm": 135.0,
+        "area_m2": 0.35100000000000003,
+        "unit_price": 70700,
+        "qty": 2,
+        "price": 142000
+      },
+      {
+        "item": "Kaca Reben 5MM",
+        "width_cm": 26.0,
+        "height_cm": 105.0,
+        "area_m2": 0.273,
+        "unit_price": 55100,
+        "qty": 5,
+        "price": 276000
+      }
+    ],
+    "method": "Cash",
+    "total_qty": 17,
+    "total": 1295000
   }
 ]

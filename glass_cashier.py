@@ -15,11 +15,9 @@ def get_github_token():
         return None
     return token
 
-
 # --- CONFIGURATION ---
 GITHUB_REPO = "Saichizu/glass-cashier"
 SHOP_NAME = "Glass Cashier App"  # shown at top of receipt
-
 
 # --- ITEMS ---
 ITEMS = [
@@ -62,7 +60,6 @@ def get_github_client():
         raise RuntimeError("GitHub token is missing or invalid.")
     return Github(token)
 
-
 def get_today_filename():
     today = datetime.datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d")
     return f"{today}.json"
@@ -87,6 +84,24 @@ def save_transactions(filename, data):
             repo.create_file(filename, "Create transactions", json.dumps(data, indent=2))
     except Exception as e:
         st.error(f"Gagal menyimpan transaksi: {e}")
+
+def delete_transaction(filename, code_to_delete):
+    try:
+        g = get_github_client()
+        repo = g.get_repo(GITHUB_REPO)
+        file = repo.get_contents(filename)
+        transactions = json.loads(file.decoded_content.decode())
+        new_transactions = [t for t in transactions if t.get("code") != code_to_delete]
+        repo.update_file(
+            path=filename,
+            message=f"Delete transaction {code_to_delete}",
+            content=json.dumps(new_transactions, indent=2),
+            sha=file.sha
+        )
+        return True
+    except Exception as e:
+        st.error(f"Gagal menghapus transaksi: {e}")
+        return False
 
 def generate_receipt_code(date_str, count):
     return f"GL{date_str}-{count:03d}"
@@ -247,16 +262,21 @@ def safe_reset():
 safe_reset()
 
 st.title("Sistem Penjualan Kaca")
-if st.button("Refresh"):
-    st.rerun()
+col1, col2 = st.columns(2)
 
-if st.button("🔑 Cek Koneksi GitHub"):
-    try:
-        g = get_github_client()
-        user = g.get_user().login
-        st.success(f"Tersambung ke GitHub sebagai: {user}")
-    except Exception as e:
-        st.error(f"Gagal konek GitHub: {e}")
+with col1:
+    if st.button("Refresh"):
+        st.rerun()
+
+with col2:
+    if st.button("🔑 Cek Koneksi Jika Daftar Transaksi tidak Muncul"):
+        try:
+            g = get_github_client()
+            user = g.get_user().login
+            st.success("Tersambung")
+        except Exception as e:
+            st.error(f"Gagal Koneksi [Laporkan ke Gerald]: {e}")
+
 
 
 # --- Item selection
@@ -408,19 +428,31 @@ if transactions_today:
                 with col4: st.write(f"{rupiah(unit_p)}")
                 with col5: st.write(f"{rupiah(subtotal)}")
                 with col6: st.write("")
-            passcode = st.text_input(f"Masukkan Kode Owner untuk Reprint [{t.get('code','no_code')}]", type="password", key=f"reprint_passcode_{i}")
+            
+            passcode = st.text_input(
+                f"Masukkan Kode Owner untuk Aksi [{t.get('code','no_code')}],",
+                type="password",
+                key=f"owner_passcode_{i}"
+            )
             if passcode:
                 if passcode == OWNER_PASSCODE:
-                    if st.button(f"Reprint Struk [{t.get('code','no_code')}]", key=f"reprint_btn_{i}"):
-                        pdf = create_receipt_pdf(t)
-                        st.download_button(
-                            label=f"⬇️ Download Reprint PDF [{t.get('code','no_code')}]",
-                            data=pdf,
-                            file_name=f"reprint_{t.get('code','no_code')}.pdf",
-                            mime="application/pdf"
-                        )
+                    col_reprint, col_delete = st.columns(2)
+                    with col_reprint:
+                        if st.button(f"Reprint Struk [{t.get('code','no_code')}]", key=f"reprint_btn_{i}"):
+                            pdf = create_receipt_pdf(t)
+                            st.download_button(
+                                label=f"⬇️ Download Reprint PDF [{t.get('code','no_code')}]]",
+                                data=pdf,
+                                file_name=f"reprint_{t.get('code','no_code')}.pdf",
+                                mime="application/pdf"
+                            )
+                    with col_delete:
+                        if st.button(f"🗑️ Hapus Nota [{t.get('code','no_code')}]", key=f"delete_btn_{i}"):
+                            if delete_transaction(filename, t.get("code")):
+                                st.success(f"Nota {t.get('code')} berhasil dihapus.")
+                                st.rerun()
                 else:
-                    st.error("Kode salah. Tidak bisa reprint.")
+                    st.error("Kode salah. Tidak bisa melakukan aksi owner.")
 else:
     st.info("Belum ada transaksi hari ini.")
 

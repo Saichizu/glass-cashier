@@ -292,9 +292,9 @@ height_cm = col2.number_input("Tinggi (cm)", min_value=0.0, value=st.session_sta
 qty = col3.number_input("Jumlah", min_value=1, value=st.session_state.get("qty", 1), key="qty")
 
 def clear_inputs():
-    st.session_state["width_cm"] = 0.0
-    st.session_state["height_cm"] = 0.0
-    st.session_state["qty"] = 1
+    st.session_state.width_cm = 0.0
+    st.session_state.height_cm = 0.0
+    st.session_state.qty = 1
 
 add_col, clear_col = st.columns([2, 1])
 with add_col:
@@ -307,33 +307,35 @@ if width_cm > 0 and height_cm > 0:
     unit_price = int(area_m2 * base_price + SERVICE_FEE)
     st.success(f"Harga per item: {rupiah(unit_price)}")
 
-    if add_clicked:
-        found = False
-        for item in st.session_state["keranjang"]:
-            if (
-                item.get("item") == selected_item
-                and float(item.get("width_cm", 0)) == float(width_cm)
-                and float(item.get("height_cm", 0)) == float(height_cm)
-            ):
-                item["qty"] = int(item.get("qty", 1)) + qty
-                raw_subtotal = item["qty"] * unit_price
-                item["unit_price"] = unit_price
-                item["price"] = math.ceil(raw_subtotal / 1000) * 1000
-                found = True
-                break
-        if not found:
-            st.session_state["keranjang"].append({
-                "item": selected_item,
-                "width_cm": float(width_cm),
-                "height_cm": float(height_cm),
-                "area_m2": area_m2,
-                "unit_price": unit_price,
-                "qty": int(qty),
-                "price": math.ceil((unit_price * qty) / 1000) * 1000,
-            })
-        # ✅ reset inputs back to default
-        clear_inputs()
-        st.rerun()
+if add_clicked:
+    found = False
+    for item in st.session_state["keranjang"]:
+        if (
+            item.get("item") == selected_item
+            and float(item.get("width_cm", 0)) == float(width_cm)
+            and float(item.get("height_cm", 0)) == float(height_cm)
+        ):
+            item["qty"] = int(item.get("qty", 1)) + qty
+            raw_subtotal = item["qty"] * unit_price
+            item["unit_price"] = unit_price
+            item["price"] = math.ceil(raw_subtotal / 1000) * 1000
+            found = True
+            break
+    if not found:
+        st.session_state["keranjang"].append({
+            "item": selected_item,
+            "width_cm": float(width_cm),
+            "height_cm": float(height_cm),
+            "area_m2": area_m2,
+            "unit_price": unit_price,
+            "qty": int(qty),
+            "price": math.ceil((unit_price * qty) / 1000) * 1000,
+        })
+
+    # ✅ reset inputs back to default safely
+    clear_inputs()
+    st.rerun()
+
 
 # --- Keranjang (ongoing transaction) ---
 if st.session_state["keranjang"]:

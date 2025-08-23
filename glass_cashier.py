@@ -358,7 +358,9 @@ if st.session_state["keranjang"]:
         with col5: st.write(f"{rupiah(subtotal)}")
         with col6:
             if st.button("❌", key=f"remove_{idx}"):
-                items_to_remove.append(idx)
+                del st.session_state["keranjang"][idx]  # langsung hapus
+                st.rerun()  # refresh halaman agar langsung hilang
+
 
         total_qty += qty
         total_price += subtotal

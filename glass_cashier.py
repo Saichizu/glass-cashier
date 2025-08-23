@@ -292,9 +292,11 @@ height_cm = col2.number_input("Tinggi (cm)", min_value=0.0, value=st.session_sta
 qty = col3.number_input("Jumlah", min_value=1, value=st.session_state.get("qty", 1), key="qty")
 
 def clear_inputs():
-    st.session_state.width_cm = 0.0
-    st.session_state.height_cm = 0.0
-    st.session_state.qty = 1
+    st.session_state.update({
+        "width_cm": 0.0,
+        "height_cm": 0.0,
+        "qty": 1,
+    })
 
 add_col, clear_col = st.columns([2, 1])
 with add_col:
@@ -333,7 +335,8 @@ if add_clicked:
         })
 
     # ✅ reset inputs back to default safely
-  
+    clear_inputs()
+    st.rerun()
     
 
 

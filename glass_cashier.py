@@ -331,6 +331,9 @@ if width_cm > 0 and height_cm > 0:
                 "qty": int(qty),
                 "price": math.ceil((unit_price * qty) / 1000) * 1000,
             })
+        # ✅ reset inputs back to default
+        clear_inputs()
+        st.rerun()
 
 # --- Keranjang (ongoing transaction) ---
 if st.session_state["keranjang"]:

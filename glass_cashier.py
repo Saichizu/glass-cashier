@@ -335,19 +335,21 @@ if add_clicked:
         })
 
 # --- Keranjang (ongoing transaction) ---
-if st.session_state["keranjang"]:
-    st.subheader("🛒 Keranjang")
-    col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
-    with col1: st.markdown("**Item**")
-    with col2: st.markdown("**Ukuran)**")
-    with col3: st.markdown("**Qty**")
-    with col4: st.markdown("**Harga Satuan**")
-    with col5: st.markdown("**Subtotal**")
-    with col6: st.markdown("**Hapus**")
+st.subheader("🛒 Keranjang")
 
-    total_qty = 0
-    total_price = 0
-    items_to_remove = []
+# Always render the table header
+col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
+with col1: st.markdown("**Item**")
+with col2: st.markdown("**Ukuran**")
+with col3: st.markdown("**Qty**")
+with col4: st.markdown("**Harga Satuan**")
+with col5: st.markdown("**Subtotal**")
+with col6: st.markdown("**Hapus**")
+
+total_qty = 0
+total_price = 0
+
+if st.session_state["keranjang"]:
     for idx, t in enumerate(st.session_state["keranjang"]):
         name, w, h, qty, unit_p, subtotal, _ = safe_item_fields(t)
         col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
@@ -359,22 +361,21 @@ if st.session_state["keranjang"]:
         with col6:
             if st.button("❌", key=f"remove_{idx}"):
                 del st.session_state["keranjang"][idx]  # langsung hapus
-                st.rerun()  # refresh halaman agar langsung hilang
-
+                st.rerun()
 
         total_qty += qty
         total_price += subtotal
 
-    for idx in sorted(items_to_remove, reverse=True):
-        st.session_state["keranjang"].pop(idx)
+    # Totals
     st.markdown(f"**Total Qty: {total_qty} pcs**")
     st.markdown(f"**Total Keranjang: {rupiah(total_price)}**")
 
+    # Payment method
     method = st.radio("Pilih Metode Pembayaran", ["Cash", "Transfer"], horizontal=True)
     st.session_state["method"] = method
     pay_enabled = method is not None
 
-    # BAYAR BUTTON
+    # Bayar button
     if st.button("💳 Bayar", disabled=not pay_enabled):
         today_str = datetime.datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%d%m%y")
         filename = get_today_filename()
@@ -404,6 +405,9 @@ if st.session_state["keranjang"]:
             mime="application/pdf"
         )
         st.session_state["just_paid"] = True
+else:
+    st.info("Keranjang kosong. Tambahkan item untuk memulai transaksi.")
+
 
 # --- Daftar Transaksi Hari Ini ---
 st.subheader("📑 Daftar Transaksi Hari Ini")

@@ -382,8 +382,25 @@ if st.session_state["keranjang"]:
         today_str = datetime.datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%d%m%y")
         filename = get_today_filename()
         transactions_today = load_transactions(filename)
-        receipt_no = len(transactions_today) + 1
+
+        # ✅ Find the last used number, not just len()
+        if transactions_today:
+            last_codes = [t.get("code", "") for t in transactions_today if t.get("code")]
+            last_nums = []
+            for code in last_codes:
+                try:
+                    # code format: GL230825-005
+                    num = int(code.split("-")[-1])
+                    last_nums.append(num)
+                except:
+                    pass
+            last_used = max(last_nums) if last_nums else 0
+        else:
+            last_used = 0
+
+        receipt_no = last_used + 1
         receipt_code = generate_receipt_code(today_str, receipt_no)
+
         total_qty = sum(safe_item_fields(t)[3] for t in st.session_state["keranjang"])
         total_price = sum(safe_item_fields(t)[5] for t in st.session_state["keranjang"])
         transaction = {
@@ -407,6 +424,7 @@ if st.session_state["keranjang"]:
             mime="application/pdf"
         )
         st.session_state["just_paid"] = True
+
 else:
     st.info("Keranjang kosong. Tambahkan item untuk memulai transaksi.")
 

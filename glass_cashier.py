@@ -474,20 +474,39 @@ if st.button("Selesaikan Sesi"):
     by_method = {"Cash": [], "Transfer": []}
     for t in transactions_today:
         by_method[t.get("method", "-")].append(t)
+
     st.subheader("Ringkasan Sesi Hari Ini")
     summary_lines = []
+
     for method, txns in by_method.items():
-        st.write(f"**Transaksi {method}**")
+        st.markdown(f"### Transaksi {method}")
+        summary_lines.append(f"Transaksi {method}\n")
+
         for t in txns:
             qty_display = t.get("total_qty", sum(safe_item_fields(it)[3] for it in t.get("items", [])))
-            st.write(f"{t.get('code','(tanpa kode)')}: {rupiah(t.get('total', 0))} ({qty_display} pcs)")
+            total_display = t.get("total", sum(safe_item_fields(it)[5] for it in t.get("items", [])))
+            line = f"{t.get('code','(tanpa kode)')}: {rupiah(total_display)} ({qty_display} pcs)"
+            st.write(line)
+            summary_lines.append(line)
+
         total_m = sum(t.get('total', 0) for t in txns)
-        st.write(f"Total {method}: {rupiah(total_m)}")
-        summary_lines.append(f"{method}: {rupiah(total_m)}")
+        total_line = f"Total {method}: {rupiah(total_m)}"
+        st.write(total_line)
+        st.markdown("---")  # separator
+        summary_lines.append(total_line + "\n")
+
+    # Join lines for textarea + PDF
     summary_str = "\n".join(summary_lines)
-    st.text_area("Struk Ringkasan", summary_str, height=180)
-    pdf = create_summary_pdf("Ringkasan Sesi", summary_lines)
-    st.download_button("⬇️ Download Ringkasan PDF", pdf, file_name="summary.pdf", mime="application/pdf")
+    st.text_area("Struk Ringkasan", summary_str, height=300)
+
+    pdf = create_summary_pdf("Ringkasan Sesi Hari Ini", summary_lines)
+    st.download_button(
+        "⬇️ Download Ringkasan PDF",
+        pdf,
+        file_name="summary.pdf",
+        mime="application/pdf"
+    )
+
 
 # --- RIWAYAT SESI HARIAN (Moved to very bottom) ---
 st.subheader("📅 Riwayat Sesi Harian")

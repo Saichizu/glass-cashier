@@ -250,13 +250,13 @@ st.title("Sistem Penjualan Kaca")
 if st.button("Refresh"):
     st.rerun()
 
-if st.sidebar.button("🔑 Cek Koneksi GitHub"):
+if st.button("🔑 Cek Koneksi GitHub"):
     try:
         g = get_github_client()
         user = g.get_user().login
-        st.sidebar.success(f"Tersambung ke GitHub sebagai: {user}")
+        st.success(f"Tersambung ke GitHub sebagai: {user}")
     except Exception as e:
-        st.sidebar.error(f"Gagal konek GitHub: {e}")
+        st.error(f"Gagal konek GitHub: {e}")
 
 
 # --- Item selection

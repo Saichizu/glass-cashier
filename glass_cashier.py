@@ -334,7 +334,7 @@ if add_clicked:
 
     # ✅ reset inputs back to default safely
     clear_inputs()
-    st.rerun()
+    
 
 
 # --- Keranjang (ongoing transaction) ---

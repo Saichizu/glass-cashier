@@ -334,12 +334,6 @@ if add_clicked:
             "price": math.ceil((unit_price * qty) / 1000) * 1000,
         })
 
-    # ✅ reset inputs back to default safely
-    clear_inputs()
-    st.rerun()
-    
-
-
 # --- Keranjang (ongoing transaction) ---
 if st.session_state["keranjang"]:
     st.subheader("🛒 Keranjang")

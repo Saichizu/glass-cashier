@@ -406,6 +406,13 @@ st.subheader("📑 Daftar Transaksi Hari Ini")
 filename = get_today_filename()
 transactions_today = load_transactions(filename)
 
+# 🔄 Sort so latest transactions appear first
+transactions_today = sorted(
+    transactions_today,
+    key=lambda x: x.get("timestamp", ""),
+    reverse=True
+)
+
 if transactions_today:
     for i, t in enumerate(transactions_today):
         qty_display = t.get("total_qty", sum(safe_item_fields(it)[3] for it in t.get("items", [])))
@@ -430,7 +437,7 @@ if transactions_today:
                 with col6: st.write("")
             
             passcode = st.text_input(
-                f"Masukkan Kode Owner untuk Aksi [{t.get('code','no_code')}],",
+                f"Masukkan Kode Owner untuk Aksi [{t.get('code','no_code')}]",
                 type="password",
                 key=f"owner_passcode_{i}"
             )
@@ -441,7 +448,7 @@ if transactions_today:
                         if st.button(f"Reprint Struk [{t.get('code','no_code')}]", key=f"reprint_btn_{i}"):
                             pdf = create_receipt_pdf(t)
                             st.download_button(
-                                label=f"⬇️ Download Reprint PDF [{t.get('code','no_code')}]]",
+                                label=f"⬇️ Download Reprint PDF [{t.get('code','no_code')}]",
                                 data=pdf,
                                 file_name=f"reprint_{t.get('code','no_code')}.pdf",
                                 mime="application/pdf"
@@ -455,6 +462,7 @@ if transactions_today:
                     st.error("Kode salah. Tidak bisa melakukan aksi owner.")
 else:
     st.info("Belum ada transaksi hari ini.")
+
 
 # --- Finish session ---
 if st.button("Selesaikan Sesi"):

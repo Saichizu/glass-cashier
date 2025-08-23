@@ -369,24 +369,6 @@
     "total": 165000
   },
   {
-    "code": "GL230825-018",
-    "datetime": "2025-08-23T16:13:15.328393+08:00",
-    "items": [
-      {
-        "item": "Kaca Cermin",
-        "width_cm": 26.5,
-        "height_cm": 65.5,
-        "area_m2": 0.173575,
-        "unit_price": 42158,
-        "qty": 1,
-        "price": 43000
-      }
-    ],
-    "method": "Cash",
-    "total_qty": 1,
-    "total": 43000
-  },
-  {
     "code": "GL230825-019",
     "datetime": "2025-08-23T16:16:59.049671+08:00",
     "items": [
@@ -466,23 +448,5 @@
     "method": "Cash",
     "total_qty": 9,
     "total": 412000
-  },
-  {
-    "code": "GL230825-018",
-    "datetime": "2025-08-23T21:07:07.354934+08:00",
-    "items": [
-      {
-        "item": "Kaca Polos 5MM",
-        "width_cm": 0.1,
-        "height_cm": 0.1,
-        "area_m2": 1e-06,
-        "unit_price": 500,
-        "qty": 1,
-        "price": 1000
-      }
-    ],
-    "method": "Cash",
-    "total_qty": 1,
-    "total": 1000
   }
 ]

@@ -7,6 +7,15 @@ from io import BytesIO
 from reportlab.pdfgen import canvas
 from zoneinfo import ZoneInfo
 
+# --- GITHUB TOKEN (Safe Fetch) ---
+def get_github_token():
+    token = st.secrets.get("GITHUB_TOKEN", "").strip()
+    if not token:
+        st.warning("⚠️ GITHUB_TOKEN not found. Please check Streamlit secrets.")
+        return None
+    return token
+
+
 # --- CONFIGURATION ---
 GITHUB_REPO = "Saichizu/glass-cashier"
 SHOP_NAME = "Glass Cashier App"  # shown at top of receipt
@@ -48,11 +57,11 @@ def safe_item_fields(item):
 
 # --- GITHUB UTILS ---
 def get_github_client():
-    github_token = st.secrets.get("GITHUB_TOKEN", None)
-    if not github_token or not isinstance(github_token, str) or not github_token.strip():
-        st.error("GITHUB_TOKEN not found or empty in Streamlit secrets. Please set your token in app settings.")
-        raise ValueError("Missing or empty GITHUB_TOKEN in Streamlit secrets.")
-    return Github(github_token)
+    token = get_github_token()
+    if not token:
+        raise RuntimeError("GitHub token is missing or invalid.")
+    return Github(token)
+
 
 def get_today_filename():
     today = datetime.datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d")
@@ -240,6 +249,15 @@ safe_reset()
 st.title("Sistem Penjualan Kaca")
 if st.button("Refresh"):
     st.rerun()
+
+if st.sidebar.button("🔑 Cek Koneksi GitHub"):
+    try:
+        g = get_github_client()
+        user = g.get_user().login
+        st.sidebar.success(f"Tersambung ke GitHub sebagai: {user}")
+    except Exception as e:
+        st.sidebar.error(f"Gagal konek GitHub: {e}")
+
 
 # --- Item selection
 st.subheader("Tambah ke Keranjang")

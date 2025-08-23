@@ -333,7 +333,7 @@ if add_clicked:
         })
 
     # ✅ reset inputs back to default safely
-    clear_inputs()
+  
     
 
 

@@ -214,5 +214,32 @@
     "method": "Cash",
     "total_qty": 7,
     "total": 342000
+  },
+  {
+    "code": "GL230825-009",
+    "datetime": "2025-08-23T12:33:33.869108+08:00",
+    "items": [
+      {
+        "item": "Kaca Cermin",
+        "width_cm": 37.0,
+        "height_cm": 70.5,
+        "area_m2": 0.26084999999999997,
+        "unit_price": 63103,
+        "qty": 1,
+        "price": 64000
+      },
+      {
+        "item": "Kaca Reben 5MM",
+        "width_cm": 38.0,
+        "height_cm": 19.0,
+        "area_m2": 0.0722,
+        "unit_price": 14940,
+        "qty": 1,
+        "price": 15000
+      }
+    ],
+    "method": "Cash",
+    "total_qty": 2,
+    "total": 79000
   }
 ]

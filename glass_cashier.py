@@ -262,14 +262,14 @@ def safe_reset():
 safe_reset()
 
 st.title("Sistem Penjualan Kaca")
-col1, col2 = st.columns(2)
+col1, col2 = st.columns([1, 1])
 
 with col1:
-    if st.button("🔄 Refresh"):
+    if st.button("🔄 Refresh", use_container_width=True):
         st.rerun()
 
 with col2:
-    if st.button("🔑 Sambungkan Daftar Transaksi"):
+    if st.button("🔑 Sambungkan Daftar Transaksi", use_container_width=True):
         try:
             g = get_github_client()
             user = g.get_user().login

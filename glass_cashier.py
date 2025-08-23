@@ -265,11 +265,11 @@ st.title("Sistem Penjualan Kaca")
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("Refresh"):
+    if st.button("🔄 Refresh"):
         st.rerun()
 
 with col2:
-    if st.button("🔑 Cek Koneksi Jika Daftar Transaksi tidak Muncul"):
+    if st.button("🔑 Sambungkan Daftar Transaksi"):
         try:
             g = get_github_client()
             user = g.get_user().login

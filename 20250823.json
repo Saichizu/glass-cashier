@@ -430,5 +430,86 @@
     "method": "Cash",
     "total_qty": 1,
     "total": 43000
+  },
+  {
+    "code": "GL230825-019",
+    "datetime": "2025-08-23T16:16:59.049671+08:00",
+    "items": [
+      {
+        "item": "Kaca Reben 5MM",
+        "width_cm": 22.5,
+        "height_cm": 102.0,
+        "area_m2": 0.2295,
+        "unit_price": 46400,
+        "qty": 1,
+        "price": 47000
+      },
+      {
+        "item": "Kaca Reben 5MM",
+        "width_cm": 23.5,
+        "height_cm": 102.0,
+        "area_m2": 0.2397,
+        "unit_price": 48440,
+        "qty": 2,
+        "price": 97000
+      },
+      {
+        "item": "Kaca Reben 5MM",
+        "width_cm": 23.0,
+        "height_cm": 102.0,
+        "area_m2": 0.2346,
+        "unit_price": 47420,
+        "qty": 1,
+        "price": 48000
+      },
+      {
+        "item": "Kaca Reben 5MM",
+        "width_cm": 18.5,
+        "height_cm": 107.0,
+        "area_m2": 0.19795000000000001,
+        "unit_price": 40090,
+        "qty": 1,
+        "price": 41000
+      },
+      {
+        "item": "Kaca Reben 5MM",
+        "width_cm": 18.0,
+        "height_cm": 107.0,
+        "area_m2": 0.1926,
+        "unit_price": 39020,
+        "qty": 1,
+        "price": 40000
+      },
+      {
+        "item": "Kaca Polos 5MM",
+        "width_cm": 18.5,
+        "height_cm": 132.0,
+        "area_m2": 0.2442,
+        "unit_price": 46898,
+        "qty": 1,
+        "price": 47000
+      },
+      {
+        "item": "Kaca Polos 5MM",
+        "width_cm": 18.0,
+        "height_cm": 132.0,
+        "area_m2": 0.2376,
+        "unit_price": 45644,
+        "qty": 1,
+        "price": 46000
+      },
+      {
+        "item": "Kaca Polos 5MM",
+        "width_cm": 18.0,
+        "height_cm": 131.8,
+        "area_m2": 0.23724,
+        "unit_price": 45575,
+        "qty": 1,
+        "price": 46000
+      }
+    ],
+    "method": "Cash",
+    "total_qty": 9,
+    "total": 412000
   }
 ]

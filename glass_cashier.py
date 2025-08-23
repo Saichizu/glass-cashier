@@ -337,34 +337,71 @@ if add_clicked:
 # --- Keranjang (ongoing transaction) ---
 st.subheader("🛒 Keranjang")
 
-# Always render the table header
-col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
-with col1: st.markdown("**Item**")
-with col2: st.markdown("**Ukuran (cm)**")
-with col3: st.markdown("**Qty**")
-with col4: st.markdown("**Harga Satuan**")
-with col5: st.markdown("**Subtotal**")
-with col6: st.markdown("**Hapus**")
-
-total_qty = 0
-total_price = 0
-
 if st.session_state["keranjang"]:
+    # Create table with borders
+    table_html = """
+    <style>
+        table.keranjang {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table.keranjang th, table.keranjang td {
+            border: 1px solid #ccc;
+            padding: 6px;
+            text-align: center;
+        }
+        table.keranjang th {
+            background-color: #f5f5f5;
+        }
+    </style>
+    <table class="keranjang">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Ukuran (cm)</th>
+                <th>Qty</th>
+                <th>Harga Satuan</th>
+                <th>Subtotal</th>
+                <th>Hapus</th>
+            </tr>
+        </thead>
+        <tbody>
+    """
+
+    total_qty = 0
+    total_price = 0
+
     for idx, t in enumerate(st.session_state["keranjang"]):
         name, w, h, qty, unit_p, subtotal, _ = safe_item_fields(t)
-        col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 2, 3, 1])
-        with col1: st.write(name)
-        with col2: st.write(f"{round(w,2):g} x {round(h,2):g}")
-        with col3: st.write(f"{qty}")
-        with col4: st.write(f"{rupiah(unit_p)}")
-        with col5: st.write(f"{rupiah(subtotal)}")
-        with col6:
-            if st.button("❌", key=f"remove_{idx}"):
-                del st.session_state["keranjang"][idx]  # langsung hapus
-                st.rerun()
+
+        # Each row has item info except the delete button (needs Streamlit)
+        table_html += f"""
+        <tr>
+            <td>{name}</td>
+            <td>{round(w,2):g} x {round(h,2):g}</td>
+            <td>{qty}</td>
+            <td>{rupiah(unit_p)}</td>
+            <td>{rupiah(subtotal)}</td>
+            <td>__DELETE_BTN_{idx}__</td>
+        </tr>
+        """
 
         total_qty += qty
         total_price += subtotal
+
+    table_html += "</tbody></table>"
+
+    # Replace placeholder with Streamlit buttons
+    for idx, _ in enumerate(st.session_state["keranjang"]):
+        btn_key = f"remove_{idx}"
+        delete_btn = st.button("❌", key=btn_key)
+        table_html = table_html.replace(f"__DELETE_BTN_{idx}__", f"<span id='{btn_key}'></span>")
+
+        if delete_btn:
+            del st.session_state["keranjang"][idx]
+            st.rerun()
+
+    st.markdown(table_html, unsafe_allow_html=True)
 
     # Totals
     st.markdown(f"**Total Qty: {total_qty} pcs**")
@@ -407,6 +444,7 @@ if st.session_state["keranjang"]:
         st.session_state["just_paid"] = True
 else:
     st.info("Keranjang kosong. Tambahkan item untuk memulai transaksi.")
+
 
 
 # --- Daftar Transaksi Hari Ini ---

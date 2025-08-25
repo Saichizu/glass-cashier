@@ -34,5 +34,41 @@
     "method": "Cash",
     "total_qty": 1,
     "total": 145000
+  },
+  {
+    "code": "GL250825-003",
+    "datetime": "2025-08-25T10:09:38.043387+08:00",
+    "items": [
+      {
+        "item": "Kaca Cermin",
+        "width_cm": 0.25,
+        "height_cm": 0.4,
+        "area_m2": 1e-05,
+        "unit_price": 502,
+        "qty": 3,
+        "price": 2000
+      },
+      {
+        "item": "Kaca Cermin",
+        "width_cm": 25.0,
+        "height_cm": 40.0,
+        "area_m2": 0.1,
+        "unit_price": 24500,
+        "qty": 3,
+        "price": 74000
+      },
+      {
+        "item": "Kaca Cermin",
+        "width_cm": 28.0,
+        "height_cm": 40.0,
+        "area_m2": 0.11200000000000002,
+        "unit_price": 27380,
+        "qty": 1,
+        "price": 28000
+      }
+    ],
+    "method": "Cash",
+    "total_qty": 7,
+    "total": 104000
   }
 ]

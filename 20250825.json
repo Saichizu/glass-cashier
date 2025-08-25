@@ -124,5 +124,23 @@
     "method": "Cash",
     "total_qty": 2,
     "total": 164000
+  },
+  {
+    "code": "GL250825-007",
+    "datetime": "2025-08-25T11:47:19.749825+08:00",
+    "items": [
+      {
+        "item": "Kaca Cermin",
+        "width_cm": 25.0,
+        "height_cm": 50.0,
+        "area_m2": 0.125,
+        "unit_price": 30500,
+        "qty": 1,
+        "price": 31000
+      }
+    ],
+    "method": "Cash",
+    "total_qty": 1,
+    "total": 31000
   }
 ]
